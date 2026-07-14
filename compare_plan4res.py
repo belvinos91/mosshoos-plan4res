@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src
 
 from mosshoos_wp2_wavelet import HaarWavelet, fourier_fit_seasonal, acf
 from mosshoos_wp3_scenarios import ScenarioGenerator, validate_scenarios
-from mosshoos_wp4_sddp import compare_MS_MD
+from sddp_clean import compare_MS_MD   # corrected, validated SDDP
 
 
 def main():
@@ -50,8 +50,20 @@ def main():
         from mosshoos_wp1_data import load_inflows, validate_inflows
         inflows = load_inflows(args.inflow)
         stats = validate_inflows(inflows)
-        params = dict(reservoir='OMVS', S_max=1200.0, S_init=600.0, R_max=200.0,
-                      C_def=300.0, annual_inflow=float(inflows.resample('YE').sum().mean()))
+        # Real Manantali-scale parameters (from hydro_parameters_dam.csv).
+        # Storage/turbine sized in GWh/month energy terms to match the inflow.
+        mean_mo = float(inflows.mean())               # ~102 GWh/month
+        annual  = float(inflows.resample('Y').sum().mean())
+        # Manantali: p_max=200MW -> ~144 GWh/month turbine cap; active storage
+        # ~7.9e9 m3 * 13.77 MWh/day/m3s equiv -> large seasonal buffer.
+        params = dict(reservoir='OMVS-Manantali',
+                      S_max=3.0*mean_mo,              # ~3 months of mean inflow as usable storage
+                      S_init=1.5*mean_mo,
+                      R_max=200.0*730/1000.0,         # 200 MW -> ~146 GWh/month
+                      C_def=300.0, annual_inflow=annual)
+        # Demand set so dry months (inflow near 0) create real deficits that
+        # storage management must cover -> this is where stochastic value appears.
+        params['demand_override'] = 0.9*mean_mo       # ~92 GWh/month
         source = f"Real OMVS data: {args.inflow}"
         bellman = None
     else:

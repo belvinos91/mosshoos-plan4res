@@ -38,18 +38,20 @@ def load_plan4res_inflows(dataset: str, reservoir: str = 'RoGonDor',
     ss = pd.read_csv(os.path.join(csv, 'SS_SeasonalStorage.csv'))
     row = ss[ss.Zone == reservoir].iloc[0]
     annual_inflow = float(row.Inflows) / 1e6          # scale to GWh-like
+    hydro_file = os.path.join(ts, 'AggregatedTimeSerie_Hydro-Run of River_' + reservoir + '.csv')
+    ror_file   = os.path.join(ts, 'TS_HYDRO_ROR_' + reservoir + '.csv')
     profile_file = os.path.join(ts, str(row.InflowsProfile))
-    if not os.path.exists(profile_file):
-        profile_file = os.path.join(ts, f'AggregatedTimeSerie_Inflows_{reservoir}.csv')
-
-    prof = pd.read_csv(profile_file)
+    if os.path.exists(hydro_file):     src_file = hydro_file
+    elif os.path.exists(ror_file):     src_file = ror_file
+    elif os.path.exists(profile_file): src_file = profile_file
+    else: src_file = os.path.join(ts, 'AggregatedTimeSerie_Inflows_' + reservoir + '.csv')
+    prof = pd.read_csv(src_file)
     numcol = prof.select_dtypes('number').columns[0]
-    weekly = prof[numcol].values.astype(float)
-
-    # aggregate ~52 weekly points -> 12 monthly, normalise to annual energy
-    idx = np.linspace(0, len(weekly), 13).astype(int)
-    monthly = np.array([weekly[idx[i]:idx[i+1]].sum() for i in range(12)])
+    hourly = prof[numcol].values.astype(float)
+    per = max(1, len(hourly)//12)
+    monthly = np.array([hourly[i*per:(i+1)*per].mean() for i in range(12)])
     monthly = monthly / (monthly.sum() + 1e-12) * annual_inflow
+    print('[P4R-IO] source: ' + os.path.basename(src_file) + ' seasonalCV=' + format(monthly.std()/monthly.mean(),'.3f'))
 
     # replicate to n_years with realistic interannual variability so the
     # wavelet/scenario machinery has a multi-year record to work on
