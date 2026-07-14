@@ -134,6 +134,14 @@ def main():
                              pd.Series(x, index=inflows.index).groupby(inflows.index.month).mean().values],
         seasonal_profile=[round(float(v),3) for v in seasonal[:12]],
     )
+    # WP4-B: validated continuous-time strand (Ito SDE calibration + EM convergence)
+    try:
+        from hjb_integrate import run_hjb
+        hjb_res = run_hjb(seasonal, residuals, params, fast=True, verbose=True)
+        out['wp4b_continuous'] = hjb_res
+    except Exception as e:
+        print(f"[WP4-B] skipped: {e}")
+
     if bellman is not None:
         out['plan4res_reference'] = dict(
             n_timesteps=int(bellman.Timestep.nunique()),

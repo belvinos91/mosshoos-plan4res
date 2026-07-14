@@ -1,7 +1,7 @@
 {
   "source": "Real OMVS data: data/OMVS_inflows.csv",
   "reservoir": "OMVS-Manantali",
-  "runtime_s": 53.3,
+  "runtime_s": 32.1,
   "params": {
     "reservoir": "OMVS-Manantali",
     "S_max": 307.895,
@@ -208,19 +208,19 @@
   "wp4": {
     "models": {
       "MS": {
-        "mean_cost": 60892.3,
+        "mean_cost": 62767.5,
         "p90_cost": 81464.1,
-        "deficit": 196.63
+        "deficit": 202.92
       },
       "MS0": {
-        "mean_cost": 60891.0,
+        "mean_cost": 62766.2,
         "p90_cost": 81464.1,
-        "deficit": 196.63
+        "deficit": 202.92
       },
       "MD": {
-        "mean_cost": 60891.0,
+        "mean_cost": 62766.2,
         "p90_cost": 81464.1,
-        "deficit": 196.63
+        "deficit": 202.92
       },
       "MD0": {
         "mean_cost": 60825.5,
@@ -259,5 +259,34 @@
     394.282,
     80.039,
     80.039
-  ]
+  ],
+  "wp4b_continuous": {
+    "sde": {
+      "sigma_type": "sqrt",
+      "kappa": 15.0,
+      "sigma0": 21.769,
+      "fourier_R2": 0.8467,
+      "ks_p": 0.0,
+      "feller": 13.847,
+      "feller_ok": true
+    },
+    "convergence": {
+      "em_slope": 0.311,
+      "em_theory": 0.5,
+      "milstein_slope": 0.325,
+      "milstein_theory": 1.0,
+      "milstein_status": "under_validation"
+    },
+    "hjb_pde": {
+      "status": "under_validation",
+      "note": "explicit FD solver numerically unstable; wavelet-Galerkin convergence pending stable solver"
+    },
+    "grid": {
+      "N_S": 25,
+      "N_Q": 10,
+      "N_t": 12,
+      "n_paths": 120,
+      "fast": true
+    }
+  }
 }

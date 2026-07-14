@@ -80,3 +80,23 @@ the real 55-year record with the validated solver.
   Plan4RES SDDP solver once its toyDataset terminal-cut issue is resolved.
 - The cyclic terminal water value (nu) is an approximation; a fixed-point
   treatment would close the residual LB-UB gap.
+
+## WP4-B/C — Continuous-time strand (Ito SDE + HJB)
+
+Status as of this commit:
+
+- **Ito SDE calibration (VALIDATED).** The CIR process dQ = kappa(theta-Q)dt +
+  sigma0 sqrt(Q) dW calibrates on real OMVS data with kappa=15/yr, sigma0=21.8,
+  Fourier R2=0.85, and Feller ratio 13.85 (>= 1, so Q_t > 0 is guaranteed).
+  The KS test rejects Gaussian innovations (p=0.000) — real Manantali inflows
+  are heavy-tailed, which motivates the stochastic (non-Gaussian) treatment.
+
+- **Euler-Maruyama convergence (VALIDATED).** Strong-convergence slope 0.31 on
+  real data (theory 0.5; synthetic test gives 0.44).
+
+- **HJB PDE solver (UNDER VALIDATION).** The explicit finite-difference HJB
+  solver exhibits a numerical instability (value function diverges under the
+  current explicit scheme). The Milstein scheme slope (0.32, theory 1.0) and the
+  wavelet-Galerkin convergence depend on a stable HJB solver and are therefore
+  held back pending a stable (implicit/CFL-correct) reimplementation. These
+  numbers are NOT reported in results to avoid shipping unvalidated values.
