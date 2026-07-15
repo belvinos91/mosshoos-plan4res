@@ -78,7 +78,7 @@ footer{text-align:center;color:#9aa4ae;font-size:12px;padding:24px}
 <nav><div class="ninner">
  <a href="#overview">Overview</a><a href="#region">Study Region</a>
  <a href="#p4r">Plan4RES Method</a><a href="#mos">MOSSHOOS Method</a>
- <a href="#scen">Scenarios</a><a href="#results">Results</a><a href="#improve">Where We Improve</a>
+ <a href="#scen">Scenarios</a><a href="#results">Results</a><a href="#ct">Continuous-time</a><a href="#improve">Where We Improve</a>
 </div></nav></header>
 <div class="wrap">
 
@@ -140,6 +140,22 @@ footer{text-align:center;color:#9aa4ae;font-size:12px;padding:24px}
 <div class="note" id="resnote"></div>
 </section>
 
+<section id="ct"><h2>WP4-B/C - Continuous-time strand (validated)</h2>
+<p class="lead">Ito SDE calibration, strong-convergence rates, HJB PDE solution and Haar wavelet-Galerkin convergence - all computed live and unit-tested.</p>
+<div class="kpirow">
+ <div class="kpi"><div class="v" id="k_feller"></div><div class="l">Feller ratio (>=1 keeps Q&gt;0)</div></div>
+ <div class="kpi blue"><div class="v" id="k_em"></div><div class="l">Euler-Maruyama slope (theory 0.5)</div></div>
+ <div class="kpi"><div class="v" id="k_mil"></div><div class="l">Milstein slope (theory 1.0)</div></div>
+ <div class="kpi blue"><div class="v" id="k_wg"></div><div class="l">Wavelet-Galerkin rate (theory -1)</div></div>
+</div>
+<h3>SDE calibration</h3>
+<table id="sdetab"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
+<h3>HJB value function at t=0 (mid inflow)</h3>
+<div class="chartbox"><canvas id="hjbChart"></canvas></div>
+<p style="font-size:12.5px;color:var(--muted)" id="hjbnote"></p>
+<h3>Wavelet-Galerkin convergence</h3>
+<table id="wgtab"><thead><tr><th>J</th><th>M basis fns</th><th>L2 error</th></tr></thead><tbody></tbody></table>
+</section>
 <section id="improve"><h2>Where We Improve Plan4RES</h2>
 <div class="improve"><h4>1 · Inflow representation</h4><span class="tag-d">Plan4RES:</span> single deterministic mean \\(\\bar{Q}_t\\) <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> Haar wavelet \\(x_t=A_J+\\sum D_j\\)</div>
 <div class="improve"><h4>2 · Scenario generation</h4><span class="tag-d">Plan4RES:</span> none / i.i.d. <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> block-bootstrap + K-means, <span id="imp_es"></span></div>
@@ -198,6 +214,61 @@ new Chart(document.getElementById('costChart'),{type:'bar',
   {label:'P90 cost',data:mm.map(m=>R.wp4.models[m].p90_cost),backgroundColor:['#52b788','#a9dfbf','#5a8fc0','#e0a458']}]},
  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},scales:{y:{title:{display:true,text:'Annual cost ($/yr)'},beginAtZero:true},x:{grid:{display:false}}}}});
 // nav highlight
+
+// ---- WP4-B/C continuous-time strand ----
+if (R.wp4b_continuous) {
+  const C = R.wp4b_continuous;
+  document.getElementById('k_feller').textContent = C.sde.feller.toFixed(1);
+  document.getElementById('k_em').textContent = C.convergence.em_slope.toFixed(2);
+  document.getElementById('k_mil').textContent = C.convergence.milstein_slope.toFixed(2);
+  document.getElementById('k_wg').textContent =
+      (C.wavelet_galerkin && C.wavelet_galerkin.slope != null)
+      ? C.wavelet_galerkin.slope.toFixed(2) : 'n/a';
+
+  const sd = document.querySelector('#sdetab tbody');
+  const rows = [
+    ['sigma type', C.sde.sigma_type],
+    ['kappa (mean reversion, /yr)', C.sde.kappa],
+    ['sigma0 (diffusion)', C.sde.sigma0],
+    ['Fourier R2 (seasonal fit)', C.sde.fourier_R2],
+    ['KS p-value', C.sde.ks_p + (C.sde.gaussian_innovations ? ' (Gaussian)' : ' (heavy-tailed)')],
+    ['Feller ratio 2*kappa*theta/sigma0^2', C.sde.feller + (C.sde.feller_ok ? ' (Q>0 guaranteed)' : ' (may hit 0)')]
+  ];
+  rows.forEach(r => { sd.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`; });
+
+  if (C.hjb && C.hjb.storage_grid) {
+    new Chart(document.getElementById('hjbChart'), {
+      type:'line',
+      data:{labels:C.hjb.storage_grid, datasets:[
+        {label:'Value function V(S)', data:C.hjb.value_at_t0, borderColor:'#1D7A5A',
+         backgroundColor:'transparent', borderWidth:2, tension:.25, pointRadius:0, yAxisID:'y'},
+        {label:'Optimal release u*(S)', data:C.hjb.policy_at_t0, borderColor:'#C77700',
+         backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], tension:.25,
+         pointRadius:0, yAxisID:'y1'}
+      ]},
+      options:{responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},
+        scales:{
+          y:{position:'left', title:{display:true,text:'V(S) [cost-to-go]'}},
+          y1:{position:'right', title:{display:true,text:'release [GWh]'}, grid:{display:false}},
+          x:{title:{display:true,text:'storage S [GWh]'}, grid:{display:false}}
+        }}
+    });
+    document.getElementById('hjbnote').textContent =
+      `Solver stable: ${C.hjb.stable}. Value function U-shaped: ${C.hjb.u_shaped} - `
+      + `high at empty (deficit risk, V=${C.hjb.V_at_empty}), minimum V=${C.hjb.V_at_min} `
+      + `at S=${C.hjb.V_min_at_storage} GWh, rising to V=${C.hjb.V_at_full} near full `
+      + `(spill penalty). This U-shape is the physically correct signature.`;
+  }
+
+  if (C.wavelet_galerkin && C.wavelet_galerkin.table) {
+    const wt = document.querySelector('#wgtab tbody');
+    C.wavelet_galerkin.table.forEach(r => {
+      wt.innerHTML += `<tr><td>${r.J}</td><td>${r.M}</td><td>${r.L2_error.toExponential(3)}</td></tr>`;
+    });
+  }
+}
+
 const secs=[...document.querySelectorAll('section')],links=[...document.querySelectorAll('nav a')];
 addEventListener('scroll',()=>{let c='';secs.forEach(s=>{if(scrollY>=s.offsetTop-70)c=s.id});links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+c));});
 </script></body></html>'''
