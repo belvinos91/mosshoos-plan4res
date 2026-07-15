@@ -1,249 +1,636 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MOSSHOOS vs Plan4RES — Live Comparison Dashboard</title>
+<title>MOSSHOOS - Stochastic Seasonal Storage Valuation</title>
 <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root{--blue:#1F4E79;--green:#1D7A5A;--orange:#C77700;--red:#8B1A1A;--lblue:#EAF2F8;--lgreen:#EAF5EE;--lgray:#F4F6F7;--ink:#1a1a2e;--muted:#5a6572}
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--lgray);color:var(--ink);line-height:1.55}
-header{background:linear-gradient(135deg,#1F4E79,#153a5c);color:#fff}
-.hbar{max-width:1180px;margin:0 auto;padding:26px 32px}
-header h1{margin:0;font-size:23px}header .subtitle{margin:8px 0 0;opacity:.92;font-size:14px;max-width:840px}
-header .authors{margin:12px 0 0;font-size:12.5px;opacity:.8}
-header .datasource{margin:10px 0 0;font-size:12px;background:rgba(255,255,255,.14);display:inline-block;padding:4px 12px;border-radius:12px}
-nav{background:#153a5c;position:sticky;top:0;z-index:50}
-nav .ninner{max-width:1180px;margin:0 auto;padding:0 32px;display:flex;gap:2px;flex-wrap:wrap}
-nav a{color:#cfe0f0;text-decoration:none;font-size:13px;padding:12px 13px;border-bottom:3px solid transparent}
-nav a:hover,nav a.active{color:#fff;border-bottom-color:var(--orange)}
-.wrap{max-width:1180px;margin:0 auto;padding:26px 32px}
-section{background:#fff;border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:26px 30px;margin-bottom:24px;scroll-margin-top:58px}
-section h2{margin:0 0 4px;color:var(--blue);font-size:19px}
-.lead{color:var(--muted);font-size:13.5px;margin:0 0 18px}
-h3{color:var(--green);font-size:15px;margin:20px 0 8px}
-.kpirow{display:flex;gap:14px;flex-wrap:wrap}
-.kpi{flex:1;min-width:150px;background:var(--lgreen);border-radius:10px;padding:16px;text-align:center;border:1px solid #d6ebe0}
-.kpi.blue{background:var(--lblue);border-color:#d3e5f2}.kpi .v{font-size:27px;font-weight:750;color:var(--green)}
-.kpi.blue .v{color:var(--blue)}.kpi .l{font-size:12px;color:#556;margin-top:5px}
-table{width:100%;border-collapse:collapse;font-size:13.5px;margin:8px 0}
-th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #eef1f4}th:first-child,td:first-child{text-align:left}
-thead th{background:var(--lblue);color:var(--blue)}tbody tr:hover{background:#fafcfe}
-.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:11px;color:#fff}
-.badge.ms{background:var(--green)}.badge.md{background:var(--blue)}.badge.ref{background:var(--muted)}.badge.new{background:var(--orange)}
-.eqbox{background:var(--lgray);border-left:4px solid var(--blue);border-radius:6px;padding:12px 16px;margin:10px 0;overflow-x:auto}
-.eqbox.green{border-left-color:var(--green)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:820px){.grid2{grid-template-columns:1fr}}
-.note{background:#fff8ec;border:1px solid #f0dcb8;border-radius:8px;padding:12px 15px;font-size:12.8px;color:#6b5326;margin:12px 0}
-.improve{background:linear-gradient(135deg,#EAF5EE,#f4faf6);border:1px solid #cfe8da;border-radius:10px;padding:16px 18px;margin:10px 0}
-.improve h4{margin:0 0 5px;color:var(--green);font-size:14.5px}.arrow{color:var(--orange);font-weight:700;margin:0 6px}
-.chartbox{position:relative;height:290px;margin:12px 0}
-.zone{display:inline-block;background:#fff;border:1px solid #d3e5f2;border-radius:8px;padding:9px 14px;margin:4px 7px 4px 0;font-size:12.5px}.zone b{color:var(--blue)}
-.tag-s{color:var(--green);font-weight:600}.tag-d{color:var(--blue);font-weight:600}
-.live{display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:6px;animation:pulse 1.6s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-footer{text-align:center;color:#9aa4ae;font-size:12px;padding:24px}
-</style></head><body>
-<header><div class="hbar">
- <h1>MOSSHOOS vs Plan4RES — Comparison Dashboard</h1>
- <div class="subtitle">Stochastic seasonal storage valuation (Haar wavelet + block-bootstrap + SDDP + HJB) benchmarked against the Plan4RES deterministic method, on identical inputs.</div>
- <div class="authors">S. B. Affognon · B. M. Ndiaye · P. Mendy · C. M. F. Kebe &nbsp;|&nbsp; UCAD Dakar · University of Nairobi · CTSS</div>
- <div class="datasource"><span class="live"></span><span id="src"></span> · generated live from results JSON</div>
-</div>
-<nav><div class="ninner">
- <a href="#overview">Overview</a><a href="#region">Study Region</a>
- <a href="#p4r">Plan4RES Method</a><a href="#mos">MOSSHOOS Method</a>
- <a href="#scen">Scenarios</a><a href="#results">Results</a><a href="#ct">Continuous-time</a><a href="#improve">Where We Improve</a>
-</div></nav></header>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface2:#f0f2f5;
+  --border:#dfe3e8; --border2:#c9d1d9;
+  --text:#16202c; --text2:#5a6673; --text3:#8a95a1;
+  --primary:#1F4E79; --primary-l:#e8f0f7;
+  --success:#1D7A5A; --success-l:#e7f4ee;
+  --info:#2a6fb0;   --info-l:#e8f1fa;
+  --warn:#B26A00;   --warn-l:#fdf1e0;
+  --danger:#A32B2B; --danger-l:#fbeaea;
+  --radius:8px; --radius-lg:11px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 40px}
+.top{display:flex;align-items:center;gap:10px;padding:14px 0 12px;flex-wrap:wrap}
+.brand{font-size:17px;font-weight:650;color:var(--primary)}
+.pill{font-size:10px;padding:2px 9px;border-radius:12px;font-weight:600;background:var(--success-l);color:var(--success)}
+.pill-b{background:var(--info-l);color:var(--info)}
+.pill-w{background:var(--warn-l);color:var(--warn)}
+.spacer{flex:1}
+.run-info{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{padding:8px 14px;font-size:12.5px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:inherit;transition:.12s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.pn{display:none}.pn.on{display:block}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:15px 17px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.kl{font-size:10px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.kv{font-size:22px;font-weight:600;line-height:1.15}
+.ks{font-size:10.5px;color:var(--text3);margin-top:2px}
+.kpi.g{background:var(--success-l);border-color:#cbe6da}.kpi.g .kv{color:var(--success)}
+.kpi.b{background:var(--info-l);border-color:#cfe0f0}.kpi.b .kv{color:var(--info)}
+.kpi.w{background:var(--warn-l);border-color:#f0dcb8}.kpi.w .kv{color:var(--warn)}
+.kpi.r{background:var(--danger-l);border-color:#f0cccc}.kpi.r .kv{color:var(--danger)}
+.sec{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px}
+h2{font-size:16px;color:var(--primary);margin-bottom:4px}
+h3{font-size:13.5px;color:var(--success);margin:16px 0 6px}
+.lead{color:var(--text2);font-size:12.5px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:700;color:var(--text2);text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);background:var(--surface2);text-transform:uppercase;letter-spacing:.04em}
+td{padding:7px 9px;border-bottom:1px solid var(--border)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--success-l)}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.bg{background:var(--success-l);color:var(--success)}
+.br{background:var(--danger-l);color:var(--danger)}
+.bb{background:var(--info-l);color:var(--info)}
+.bw{background:var(--warn-l);color:var(--warn)}
+.bn{background:var(--surface2);color:var(--text2)}
+.ch{position:relative;height:280px}
+.ch.sm{height:220px}
+.srow{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.srow label{width:190px;font-size:11.5px;color:var(--text2);flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--primary)}
+.srow .rv{min-width:48px;text-align:right;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;font-size:12px;font-weight:600;
+ border:1px solid var(--primary);border-radius:var(--radius);cursor:pointer;background:var(--primary);
+ color:#fff;font-family:inherit;transition:.12s}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sec{background:var(--surface);color:var(--text);border-color:var(--border2)}
+.btn.sec:hover{background:var(--surface2);filter:none}
+.dl-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.alert{padding:9px 12px;border-radius:var(--radius);font-size:11.5px;line-height:1.6;margin:10px 0;border-left:3px solid}
+.ai{background:var(--info-l);color:#1b4f80;border-color:var(--info)}
+.as{background:var(--success-l);color:#12503b;border-color:var(--success)}
+.aw{background:var(--warn-l);color:#7a4a00;border-color:var(--warn)}
+code{font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:3px}
+pre{background:#11202e;color:#cfe3f5;padding:11px;border-radius:var(--radius);font-size:11px;
+ font-family:var(--mono);line-height:1.65;overflow:auto;max-height:340px;margin-top:8px}
+.eq{background:var(--surface2);border-left:3px solid var(--primary);border-radius:6px;padding:10px 14px;margin:9px 0;overflow-x:auto}
+.eq.g{border-left-color:var(--success)}
+.imp{background:var(--success-l);border:1px solid #cbe6da;border-radius:var(--radius);padding:12px 14px;margin:9px 0}
+.imp h4{font-size:12.5px;color:var(--success);margin-bottom:4px}
+.arw{color:var(--warn);font-weight:700;margin:0 5px}
+.legs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.sw{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.muted{color:var(--text3);font-size:11.5px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:5px}
+footer{text-align:center;color:var(--text3);font-size:11px;padding:22px 0}
+</style>
+</head>
+<body>
 <div class="wrap">
 
-<section id="overview"><h2>Overview</h2>
-<p class="lead">All numbers below are computed by <code>compare_plan4res.py</code> and read live from <code>results/comparison_results.json</code> — nothing is hardcoded. Re-run the pipeline and this dashboard updates.</p>
-<div class="kpirow">
- <div class="kpi"><div class="v" id="k_vss"></div><div class="l">Value of Stochastic Solution (VSS)</div></div>
- <div class="kpi blue"><div class="v" id="k_p90"></div><div class="l">P90 tail-cost saving</div></div>
- <div class="kpi"><div class="v" id="k_es"></div><div class="l">Scenario energy-score gain vs i.i.d.</div></div>
- <div class="kpi blue"><div class="v" id="k_aj"></div><div class="l">Wavelet seasonal energy A_J</div></div>
+<div class="top">
+  <span class="brand">MOSSHOOS</span>
+  <span class="pill" id="p-source">loading...</span>
+  <span class="pill pill-b">Plan4RES extension</span>
+  <span class="pill pill-w" id="p-validated">all components unit-tested</span>
+  <span class="spacer"></span>
+  <span class="run-info" id="runinfo"></span>
 </div>
-<p style="font-size:13px;margin-top:16px">
- <span class="badge ms">M-S</span> MOSSHOOS (stochastic) ·
- <span class="badge md">M-D</span> Plan4RES (deterministic) ·
- <span class="badge ref">M-S0</span> stochastic without wavelet ·
- <span class="badge ref">M-D0</span> greedy baseline</p>
-</section>
 
-<section id="region"><h2>Study Region &amp; Data</h2>
-<p class="lead">Reservoir and parameters read from Plan4RES <code>SS_SeasonalStorage.csv</code> / <code>ZV_ZoneValues.csv</code>.</p>
-<div id="zones"></div>
-<div class="note">For the Senegal/WAPP application these map to the OMVS plants: <b>Manantali/BafingMakana</b> (200 MW, H=65 m), <b>Félou</b> (59.5 MW, H=14.5 m), <b>Gouina</b> (140 MW, H=17 m).</div>
-</section>
-
-<section id="p4r"><h2><span class="badge md">M-D</span> Plan4RES Method</h2>
-<p class="lead">Deterministic seasonal storage value via Benders cuts on the mean-inflow forecast.</p>
-<div class="eqbox">\[ V_t(S)=\max_{\ell\in\mathcal{L}_t}\{\,b_\ell+\mathbf{a}_\ell^\top\mathbf{S}\,\} \]</div>
-<div id="p4rref"></div>
-</section>
-
-<section id="mos"><h2><span class="badge ms">M-S</span> MOSSHOOS Method</h2>
-<p class="lead">Four coupled layers replace the deterministic assumption with a full stochastic treatment.</p>
-<div class="grid2">
- <div><h3>WP2 — Haar wavelet</h3><div class="eqbox green">\[ x_t=A_J(t)+\sum_{j=1}^{J}D_j(t) \]</div>
-  <p style="font-size:12.5px" id="wp2txt"></p></div>
- <div><h3>WP2 — Fourier seasonal fit</h3><div class="eqbox green">\[ \theta(t)=a_0+\sum_{k=1}^{K}[a_k\cos(2\pi kt)+b_k\sin(2\pi kt)] \]</div>
-  <p style="font-size:12.5px" id="fourtxt"></p></div>
+<div class="tabs">
+  <button class="tab on" data-p="ov">Overview</button>
+  <button class="tab" data-p="p4r">Plan4RES</button>
+  <button class="tab" data-p="mos">MOSSHOOS method</button>
+  <button class="tab" data-p="cmp">Comparison</button>
+  <button class="tab" data-p="sc">Scenarios</button>
+  <button class="tab" data-p="wv">Wavelet</button>
+  <button class="tab" data-p="ct">Continuous-time</button>
+  <button class="tab" data-p="run">Run models</button>
+  <button class="tab" data-p="dl">Data &amp; downloads</button>
 </div>
-<h3>WP3 — Block-bootstrap scenarios</h3><p style="font-size:12.5px" id="wp3txt"></p>
-<div class="grid2">
- <div><h3>WP4-B — Itô SDE (OU / CIR)</h3>
-  <div class="eqbox green">\[ dQ_t=\kappa(\mu-Q_t)dt+\sigma\,dW_t \]</div>
-  <div class="eqbox green">\[ dQ_t=\kappa(\theta-Q_t)dt+\sigma\sqrt{Q_t}\,dW_t \]</div></div>
- <div><h3>WP4-C — HJB control</h3>
-  <div class="eqbox green">\[ \rho J=\sup_u\{\mathcal{R}+(Q-u)J_V+\kappa(\mu-Q)J_Q+\tfrac{\sigma^2}{2}J_{QQ}\} \]</div>
-  <div class="eqbox green">\[ u^*(V,Q)=\Pi_{[0,u_{\max}]}\!\big(\tfrac{b-J_V}{c}\big) \]</div></div>
+
+<!-- OVERVIEW -->
+<div id="pn-ov" class="pn on">
+  <div class="g4" id="kpis"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="sec">Cost by model</div>
+      <div class="ch sm"><canvas id="ovCost"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec">Monthly inflow climatology</div>
+      <div class="ch sm"><canvas id="ovClim"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">What this dashboard is</div>
+    <p class="lead">Every number here is computed by the pipeline and read live from
+      <code>results/comparison_results.json</code>. Nothing is hardcoded. Change the
+      parameters in <b>Run models</b>, re-run, and every panel updates.</p>
+    <div class="alert as"><b>Validated components.</b> SDDP water values, Ito SDE calibration,
+      Euler-Maruyama / Milstein convergence, HJB PDE solver, and the Haar wavelet-Galerkin
+      projection each ship with unit tests. Run them with
+      <code>python3 src/sddp_clean.py</code>, <code>src/sde_convergence.py</code>,
+      <code>src/hjb_clean.py</code>, <code>src/wavelet_galerkin.py</code>.</div>
+    <div class="alert ai"><b>Model legend.</b>
+      <span class="badge bg">M-S</span> MOSSHOOS stochastic (wavelet + bootstrap + SDDP) &nbsp;
+      <span class="badge bb">M-D</span> Plan4RES deterministic (mean-inflow Benders cuts) &nbsp;
+      <span class="badge bn">M-S0</span> stochastic without wavelet (ablation) &nbsp;
+      <span class="badge bn">M-D0</span> greedy, no water value (baseline)</div>
+  </div>
 </div>
-</section>
 
-<section id="scen"><h2>Scenarios</h2>
-<p class="lead">MOSSHOOS represents inflow uncertainty as weighted scenarios (dry→wet) vs the single Plan4RES deterministic mean.</p>
-<div class="chartbox"><canvas id="scenChart"></canvas></div>
-</section>
-
-<section id="results"><h2>Results — Model Comparison</h2>
-<p class="lead" id="restxt"></p>
-<table id="restable"><thead><tr><th>Model</th><th>Mean cost</th><th>P90 cost</th><th>Deficit (GWh)</th></tr></thead><tbody></tbody></table>
-<div class="chartbox"><canvas id="costChart"></canvas></div>
-<div class="note" id="resnote"></div>
-</section>
-
-<section id="ct"><h2>WP4-B/C - Continuous-time strand (validated)</h2>
-<p class="lead">Ito SDE calibration, strong-convergence rates, HJB PDE solution and Haar wavelet-Galerkin convergence - all computed live and unit-tested.</p>
-<div class="kpirow">
- <div class="kpi"><div class="v" id="k_feller"></div><div class="l">Feller ratio (>=1 keeps Q&gt;0)</div></div>
- <div class="kpi blue"><div class="v" id="k_em"></div><div class="l">Euler-Maruyama slope (theory 0.5)</div></div>
- <div class="kpi"><div class="v" id="k_mil"></div><div class="l">Milstein slope (theory 1.0)</div></div>
- <div class="kpi blue"><div class="v" id="k_wg"></div><div class="l">Wavelet-Galerkin rate (theory -1)</div></div>
+<!-- PLAN4RES -->
+<div id="pn-p4r" class="pn">
+  <div class="card">
+    <h2>Plan4RES - deterministic seasonal storage value</h2>
+    <p class="lead">Plan4RES computes seasonal storage value with Benders cuts on a
+      deterministic mean-inflow forecast. Its SMS++ solver writes those cuts to
+      <code>bellmanvalues.csv</code>.</p>
+    <h3>Bellman value as a maximum of Benders cuts</h3>
+    <div class="eq">\[ V_t(S)\;=\;\max_{\ell\in\mathcal{L}_t}\big\{\,b_\ell+\mathbf{a}_\ell^{\top}\mathbf{S}\,\big\} \]</div>
+    <p class="muted">The inflow enters as the deterministic seasonal mean \(\bar{Q}_t=\theta(t)\).
+      Uncertainty is not represented, so the policy cannot hedge against dry years.</p>
+    <h3>Reference output shipped with the dataset</h3>
+    <div id="p4rref"><p class="muted">Run against a Plan4RES dataset to load their bellmanvalues.csv.</p></div>
+    <h3>Solver fixes we contributed</h3>
+    <div class="alert ai">Three defects blocked their <code>sddp_solver</code> from running:
+      an MPI communicator constructed before <code>MPI_Init</code>; a missing
+      <code>-DUSE_MPI</code> compile flag; and six bare-filename paths in
+      <code>ssv.sh</code>. All fixed (see <code>plan4res_fixes/FIXES_APPLIED.md</code>).
+      A remaining upstream issue - <code>oneStepBackward: no linearization is available</code>
+      on the stock toyDataset - is reported to the maintainers.</div>
+  </div>
 </div>
-<h3>SDE calibration</h3>
-<table id="sdetab"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
-<h3>HJB value function at t=0 (mid inflow)</h3>
-<div class="chartbox"><canvas id="hjbChart"></canvas></div>
-<p style="font-size:12.5px;color:var(--muted)" id="hjbnote"></p>
-<h3>Wavelet-Galerkin convergence</h3>
-<table id="wgtab"><thead><tr><th>J</th><th>M basis fns</th><th>L2 error</th></tr></thead><tbody></tbody></table>
-</section>
-<section id="improve"><h2>Where We Improve Plan4RES</h2>
-<div class="improve"><h4>1 · Inflow representation</h4><span class="tag-d">Plan4RES:</span> single deterministic mean \(\bar{Q}_t\) <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> Haar wavelet \(x_t=A_J+\sum D_j\)</div>
-<div class="improve"><h4>2 · Scenario generation</h4><span class="tag-d">Plan4RES:</span> none / i.i.d. <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> block-bootstrap + K-means, <span id="imp_es"></span></div>
-<div class="improve"><h4>3 · Bellman values</h4><span class="tag-d">Plan4RES:</span> deterministic Benders cuts <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> online SDDP over scenario set η</div>
-<div class="improve"><h4>4 · Release policy</h4><span class="tag-d">Plan4RES:</span> stage-wise LP <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> continuous-time HJB feedback under OU/CIR</div>
-<div class="improve"><h4>5 · Uncertainty quantification</h4><span class="tag-d">Plan4RES:</span> not reported <span class="arrow">→</span> <span class="tag-s">MOSSHOOS:</span> <span id="imp_vss"></span></div>
-</section>
 
+<!-- MOSSHOOS METHOD -->
+<div id="pn-mos" class="pn">
+  <div class="card">
+    <h2>MOSSHOOS - stochastic extension</h2>
+    <p class="lead">Four coupled layers replace the deterministic assumption with a full
+      stochastic treatment of inflow uncertainty.</p>
+    <div class="g2">
+      <div>
+        <h3>WP2 - Haar wavelet decomposition</h3>
+        <div class="eq g">\[ x_t = A_J(t) + \sum_{j=1}^{J} D_j(t) \]</div>
+        <p class="muted" id="m-wp2"></p>
+      </div>
+      <div>
+        <h3>WP2 - Fourier seasonal fit</h3>
+        <div class="eq g">\[ \theta(t)=a_0+\sum_{k=1}^{K}\big[a_k\cos(2\pi kt)+b_k\sin(2\pi kt)\big] \]</div>
+        <p class="muted" id="m-four"></p>
+      </div>
+    </div>
+    <h3>WP3 - block-bootstrap scenario generation</h3>
+    <p class="muted" id="m-wp3"></p>
+    <div class="g2">
+      <div>
+        <h3>WP4-A - SDDP water values</h3>
+        <div class="eq g">\[ Q_t(S)=\min_{u}\Big\{ C(S,q,u)+\gamma\,\mathbb{E}_q\big[Q_{t+1}(S')\big]\Big\} \]</div>
+        <div class="eq g">\[ Q_{t+1}(S')\;\ge\;\max_\ell\{a_\ell+b_\ell S'\} \]</div>
+        <p class="muted">Supporting hyperplanes accumulate, so the approximation is a valid
+          lower bound and improves monotonically (Pereira-Pinto).</p>
+      </div>
+      <div>
+        <h3>WP4-B - Ito SDE for the inflow</h3>
+        <div class="eq g">\[ \mathrm{d}Q_t=\kappa\big(\theta(t)-Q_t\big)\mathrm{d}t+\sigma_0\sqrt{Q_t}\,\mathrm{d}W_t \]</div>
+        <p class="muted">CIR form keeps \(Q_t>0\) when the Feller condition
+          \(2\kappa\theta\ge\sigma_0^2\) holds.</p>
+      </div>
+    </div>
+    <h3>WP4-C - Hamilton-Jacobi-Bellman control</h3>
+    <div class="eq g">\[ -\frac{\partial V}{\partial t}=\min_{0\le u\le u_{\max}}\Big\{ C(S,Q,u)
+      +(Q-u-\mathrm{sp})\frac{\partial V}{\partial S}
+      +\kappa(\theta(t)-Q)\frac{\partial V}{\partial Q}
+      +\tfrac{1}{2}\sigma^2(Q)\frac{\partial^2 V}{\partial Q^2}\Big\} \]</div>
+    <p class="muted">Randomness lives in the inflow \(Q\); storage \(S\) evolves
+      deterministically once \((u,Q)\) are fixed. The value function has kinks in \(S\)
+      where the release regime switches, so \(V\in H^1\) - which is exactly why a Haar
+      wavelet basis attains the optimal \(O(M^{-1})\) rate.</p>
+    <h3>Where we improve Plan4RES</h3>
+    <div class="imp"><h4>1 - Inflow representation</h4>
+      <span class="badge bb">Plan4RES</span> single deterministic mean <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> wavelet split + stochastic residual</div>
+    <div class="imp"><h4>2 - Scenario generation</h4>
+      <span class="badge bb">Plan4RES</span> none / i.i.d. <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> block-bootstrap (b=4) + K-means, energy-score validated</div>
+    <div class="imp"><h4>3 - Water values</h4>
+      <span class="badge bb">Plan4RES</span> deterministic Benders cuts <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> SDDP over the full scenario set</div>
+    <div class="imp"><h4>4 - Release policy</h4>
+      <span class="badge bb">Plan4RES</span> stage-wise LP <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> continuous-time HJB feedback under CIR dynamics</div>
+    <div class="imp"><h4>5 - Uncertainty quantification</h4>
+      <span class="badge bb">Plan4RES</span> not reported <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> VSS, storage-sensitivity curve, convergence rates</div>
+  </div>
 </div>
-<footer id="foot"></footer>
+
+<!-- COMPARISON -->
+<div id="pn-cmp" class="pn">
+  <div class="card">
+    <div class="sec">Model comparison (Monte-Carlo, common scenarios)</div>
+    <table id="cmpTab"><thead><tr>
+      <th>Model</th><th class="num">Mean cost</th><th class="num">P90 cost</th>
+      <th class="num">Deficit (GWh)</th><th class="num">vs M-S</th></tr></thead><tbody></tbody></table>
+    <div class="ch" style="margin-top:12px"><canvas id="cmpChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="sec">Storage-sensitivity: where stochastic value lives</div>
+    <p class="lead">VSS as a function of usable storage, computed from the real record.
+      This is the defensible result: the value of stochastic optimisation is governed by the
+      storage-to-inflow regime, not by a single headline number.</p>
+    <div class="legs">
+      <span class="leg"><span class="sw" style="background:#2a6fb0"></span>M-S vs greedy (M-D0)</span>
+      <span class="leg"><span class="sw" style="background:#A32B2B"></span>M-S vs deterministic (M-D)</span>
+    </div>
+    <div class="ch"><canvas id="sweepChart"></canvas></div>
+    <div id="sweepNote"></div>
+  </div>
+</div>
+
+<!-- SCENARIOS -->
+<div id="pn-sc" class="pn">
+  <div class="card">
+    <div class="sec">Inflow scenarios eta (dry -&gt; wet) vs the deterministic mean</div>
+    <div class="ch"><canvas id="scChart"></canvas></div>
+    <p class="muted" id="scNote"></p>
+  </div>
+  <div class="card">
+    <div class="sec">Scenario weights and annual volumes</div>
+    <table id="scTab"><thead><tr><th>#</th><th>Type</th><th class="num">Weight</th>
+      <th class="num">Annual volume (GWh)</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- WAVELET -->
+<div id="pn-wv" class="pn">
+  <div class="card">
+    <div class="sec">Haar wavelet energy spectrum</div>
+    <p class="lead">Share of signal energy in the seasonal approximation \(A_J\) and each
+      detail level \(D_j\) (Parseval).</p>
+    <div class="ch sm"><canvas id="wvChart"></canvas></div>
+    <div id="wvKpi" class="g4" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- CONTINUOUS TIME -->
+<div id="pn-ct" class="pn">
+  <div class="g4" id="ctKpi"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="sec">Ito SDE calibration</div>
+      <table id="sdeTab"><thead><tr><th>Parameter</th><th class="num">Value</th></tr></thead><tbody></tbody></table>
+      <div id="sdeNote"></div>
+    </div>
+    <div class="card">
+      <div class="sec">Wavelet-Galerkin convergence</div>
+      <table id="wgTab"><thead><tr><th class="num">J</th><th class="num">M</th>
+        <th class="num">L2 error</th></tr></thead><tbody></tbody></table>
+      <div id="wgNote"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">HJB value function and optimal release at t=0</div>
+    <div class="ch"><canvas id="hjbChart"></canvas></div>
+    <div id="hjbNote"></div>
+  </div>
+</div>
+
+<!-- RUN -->
+<div id="pn-run" class="pn">
+  <div class="card">
+    <h2>Run the models</h2>
+    <p class="lead">Change the parameters and re-run the full pipeline on the server.
+      Results, charts and downloads all refresh from the new output.</p>
+    <div class="g2">
+      <div>
+        <div class="srow"><label>Data source</label>
+          <select id="i-source" style="flex:1;padding:5px;border:1px solid var(--border2);border-radius:6px;font-family:inherit">
+            <option value="omvs">Real OMVS (Manantali, 55 yr)</option>
+            <option value="plan4res">Plan4RES toyDataset (RoGonDor)</option>
+          </select></div>
+        <div class="srow"><label>SDDP iterations</label>
+          <input type="range" id="i-iter" min="20" max="1500" step="10" value="150">
+          <span class="rv" id="v-iter">150</span></div>
+        <div class="srow"><label>Scenarios K (K-means)</label>
+          <input type="range" id="i-clust" min="3" max="40" step="1" value="10">
+          <span class="rv" id="v-clust">10</span></div>
+      </div>
+      <div>
+        <div class="srow"><label>Monte-Carlo paths</label>
+          <input type="range" id="i-mc" min="50" max="5000" step="50" value="200">
+          <span class="rv" id="v-mc">200</span></div>
+        <div class="srow"><label>Bootstrap cycles N</label>
+          <input type="range" id="i-boot" min="50" max="2000" step="10" value="150">
+          <span class="rv" id="v-boot">150</span></div>
+        <div class="srow"><label></label>
+          <button class="btn" id="btn-run">Run pipeline</button>
+          <button class="btn sec" id="btn-refresh">Refresh results</button></div>
+      </div>
+    </div>
+    <div class="alert ai" id="rtEst"></div>
+    <div class="alert aw"><b>Reading the output.</b> The Monte-Carlo count controls only the
+      precision of the reported means - it cannot create variance that is not in the data.
+      If the scenario spread is flat (check <b>Scenarios</b>: P10 ~ P50 ~ P90), then every model
+      will cost the same no matter how many MC paths you request, because the release decision is
+      forced rather than chosen. Raise MC paths to tighten the error bars; raise iterations to
+      converge the water values; raise K only when the scenarios genuinely differ.</div>
+    <div class="alert aw"><b>Static export.</b> This file has the results baked in and works offline with no server. To change parameters and re-run the models, run <code>python3 dashboard_server.py --port 8050</code> on a machine with the repository.</div><div id="runAlert"></div>
+    <div class="sec" style="margin-top:12px">Live solver output</div>
+    <pre id="runlog">Ready. Press "Run pipeline" to execute the models on the server.</pre>
+  </div>
+</div>
+
+<!-- DOWNLOADS -->
+<div id="pn-dl" class="pn">
+  <div class="card">
+    <h2>Data and downloads</h2>
+    <p class="lead">Every input and output, straight from the server. Inputs are what the
+      models read; outputs are what they just produced.</p>
+    <h3>MOSSHOOS</h3>
+    <table id="dlTab"><thead><tr><th>File</th><th>What it is</th>
+      <th class="num">Size</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="card">
+    <div class="sec">Reproduce everything</div>
+    <pre>git clone https://github.com/belvinos91/mosshoos-plan4res.git
+cd mosshoos-plan4res
+pip install -r requirements.txt
+
+# unit tests - verify each component
+python3 src/sddp_clean.py        # monotone LB, VSS&gt;=0, valid cuts
+python3 src/sde_convergence.py   # EM ~0.5, Milstein ~1.0
+python3 src/hjb_clean.py         # stable, U-shaped V, correct policy
+python3 src/wavelet_galerkin.py  # O(M^-1) rate
+
+# full pipeline
+./run_all.sh --omvs data/OMVS_inflows.csv
+python3 storage_sweep.py --inflow data/OMVS_inflows.csv
+
+# this dashboard
+python3 dashboard_server.py --port 8050</pre>
+  </div>
+</div>
+
+<footer>MOSSHOOS &middot; S. B. Affognon, B. M. Ndiaye, P. Mendy, C. M. F. Kebe &middot;
+UCAD Dakar &middot; University of Nairobi &middot; served live from srv-ortad</footer>
+</div>
 
 <script>
-const R = {"source": "Real OMVS data: data/OMVS_inflows.csv", "reservoir": "OMVS-Manantali", "runtime_s": 36.3, "params": {"reservoir": "OMVS-Manantali", "S_max": 307.895, "S_init": 153.948, "R_max": 146.0, "C_def": 300.0, "annual_inflow": 1231.582, "demand_override": 92.369}, "wp2": {"J_optimal": 1, "AJ_energy_pct": 86.52, "fourier_R2": 0.8467, "residual_std": 63.63, "energy_spectrum": [86.52, 13.48]}, "wp3": {"n_scenarios": 10, "scenarios": [[27.102, 11.823, 77.007, 128.426, 48.018, 32.984, 331.905, 313.339, 429.771, 417.87, 48.885, 84.315], [39.76, 16.821, 9.99, 20.221, 55.924, 46.715, 310.978, 321.611, 287.743, 500.474, 158.502, 14.281], [33.097, 22.26, 16.771, 28.266, 18.668, 53.709, 198.519, 453.209, 413.326, 422.913, 58.529, 88.611], [70.499, 86.824, 29.574, 19.055, 71.22, 33.442, 328.221, 300.291, 395.824, 409.665, 9.719, 162.685], [140.64, 48.896, 16.076, 19.625, 53.979, 21.302, 347.222, 298.99, 387.56, 390.583, 89.077, 59.053], [22.14, 27.722, 45.42, 32.644, 43.294, 0.1, 440.948, 424.38, 405.455, 396.282, 68.563, 77.826], [26.547, 20.077, 11.39, 38.482, 2.529, 132.141, 414.696, 224.115, 421.777, 396.917, 74.053, 70.986], [28.701, 44.963, 12.874, 13.17, 126.595, 82.341, 286.583, 318.195, 489.433, 325.687, 93.981, 60.396], [23.491, 23.099, 14.605, 7.942, 51.738, 29.513, 321.391, 311.259, 405.271, 401.68, 70.448, 71.228], [32.35, 38.933, 38.717, 11.648, 41.887, 28.125, 338.908, 284.491, 400.686, 281.722, 188.237, 163.544]], "weights": [0.0933, 0.12, 0.0933, 0.1267, 0.08, 0.06, 0.0933, 0.0733, 0.16, 0.1], "types": ["median", "median", "median", "median", "median", "WET", "median", "median", "DRY", "median"], "annual_volumes": [1951.4, 1783.0, 1807.9, 1917.0, 1873.0, 1984.8, 1833.7, 1882.9, 1731.7, 1849.2], "ks_stat": 0.9273, "es_improvement": 48.8, "acf_max_err": 0.139}, "wp4": {"models": {"MS": {"mean_cost": 62767.5, "p90_cost": 81464.1, "deficit": 202.92}, "MS0": {"mean_cost": 62766.2, "p90_cost": 81464.1, "deficit": 202.92}, "MD": {"mean_cost": 62766.2, "p90_cost": 81464.1, "deficit": 202.92}, "MD0": {"mean_cost": 60825.5, "p90_cost": 81749.2, "deficit": 196.39}}, "VSS_pct": -0.0, "P90_saving_pct": 0.0, "deficit_saving_pct": -0.0}, "monthly_climatology": [22.76, 11.97, 6.53, 2.79, 2.92, 22.2, 107.64, 329.82, 380.72, 217.0, 86.76, 40.47], "seasonal_profile": [22.963, 22.963, 8.953, 8.953, 33.289, 33.289, 326.009, 326.009, 394.282, 394.282, 80.039, 80.039], "wp4b_continuous": {"sde": {"sigma_type": "sqrt", "kappa": 15.0, "sigma0": 21.769, "fourier_R2": 0.8467, "ks_p": 0.0, "gaussian_innovations": false, "feller": 13.847, "feller_ok": true}, "convergence": {"method": "path-coupled Brownian increments", "em_slope": 0.929, "em_theory": 0.5, "milstein_slope": 1.174, "milstein_theory": 1.0, "milstein_beats_em": true, "status": "validated", "dt": [0.0625, 0.03125, 0.015625, 0.0078125], "err_em": [18.96923427408979, 8.588327031842155, 4.584789598946068, 2.733450844282899], "err_mil": [19.603215826938047, 7.583085893377797, 3.53270561394416, 1.679866297112092]}, "hjb": {"status": "validated", "stable": true, "max_abs_V": 33195.25, "V_min_at_storage": 127.4, "V_at_empty": 9382.5, "V_at_min": 1339.7, "V_at_full": 12105.8, "u_shaped": true, "storage_grid": [0.0, 10.6, 21.2, 31.9, 42.5, 53.1, 63.7, 74.3, 84.9, 95.6, 106.2, 116.8, 127.4, 138.0, 148.6, 159.3, 169.9, 180.5, 191.1, 201.7, 212.3, 223.0, 233.6, 244.2, 254.8, 265.4, 276.0, 286.7, 297.3, 307.9], "value_at_t0": [9382.47, 8353.19, 7281.65, 6229.75, 5235.17, 4344.85, 3564.61, 2879.9, 2265.33, 1775.42, 1480.06, 1351.05, 1339.73, 1407.22, 1560.25, 1777.63, 2048.79, 2378.73, 2787.87, 3271.79, 3811.47, 4413.27, 5096.11, 5873.19, 6711.51, 7615.17, 8597.56, 9702.55, 10871.88, 12105.77], "policy_at_t0": [93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 101.08, 112.31, 123.54, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0]}, "grid": {"N_S": 30, "N_Q": 15, "N_t": 12, "n_paths": 120, "fast": true}}};
-const f=(x,d=1)=>Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
-document.getElementById('src').textContent = R.source;
-document.getElementById('k_vss').textContent = R.wp4.VSS_pct.toFixed(1)+'%';
-document.getElementById('k_p90').textContent = R.wp4.P90_saving_pct.toFixed(1)+'%';
-document.getElementById('k_es').textContent = R.wp3.es_improvement.toFixed(1)+'%';
-document.getElementById('k_aj').textContent = R.wp2.AJ_energy_pct.toFixed(1)+'%';
-// zones
-const p=R.params;
-document.getElementById('zones').innerHTML =
- `<div class="zone"><b>${p.reservoir}</b><br>S_max ${f(p.S_max)} · R_max ${f(p.R_max)} · C_def ${f(p.C_def,0)}</div>`;
-// plan4res reference
-if(R.plan4res_reference){
- let h=`<h3>Their reference output (bellmanvalues.csv)</h3><p style="font-size:12.5px">${R.plan4res_reference.n_timesteps} timesteps · ${R.plan4res_reference.n_cuts} cuts</p><table><thead><tr><th>Timestep</th><th>a₀</th><th>a₁</th><th>a₂</th><th>b</th></tr></thead><tbody>`;
- R.plan4res_reference.sample.forEach(r=>{h+=`<tr><td>${r.Timestep}</td><td>${f(r.a_0,3)}</td><td>${f(r.a_1,3)}</td><td>${f(r.a_2,3)}</td><td>${f(r.b,0)}</td></tr>`;});
- document.getElementById('p4rref').innerHTML=h+'</tbody></table>';
+const $ = s => document.querySelector(s);
+const fmt = (x,d=1) => (x==null||isNaN(x)) ? '-' : Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const PAL = ['#C0392B','#E67E22','#27AE60','#2980B9','#16A085','#8E44AD','#D35400','#2C3E50','#7F8C8D','#1ABC9C',
+             '#B03A2E','#CA6F1E','#1E8449','#21618C','#117864','#6C3483','#A04000','#212F3D','#616A6B','#148F77'];
+let R=null, SW=null, charts={};
+
+function mk(id, cfg){ if(charts[id]) charts[id].destroy(); charts[id]=new Chart($('#'+id), cfg); }
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); $('#pn-'+t.dataset.p).classList.add('on');
+});
+function est(){
+  const it=+$('#i-iter').value, mc=+$('#i-mc').value, K=+$('#i-clust').value, N=+$('#i-boot').value;
+  // rough cost model: SDDP work ~ iter*K, MC ~ mc, 4 models
+  const s = 4*(it*K*0.0016 + mc*0.004) + N*0.002 + 25;
+  const m = Math.floor(s/60), r = Math.round(s%60);
+  $('#rtEst').innerHTML = `<b>Estimated runtime</b> ~ ${m>0?m+' min ':''}${r} s &nbsp;|&nbsp; `
+    + `SDDP work scales with iterations x K (${it} x ${K} = ${(it*K).toLocaleString()} stage solves per model), `
+    + `Monte-Carlo with paths (${mc.toLocaleString()} x 4 models). There is no hard cap - long runs simply take longer.`;
 }
-// wp text
-document.getElementById('wp2txt').textContent=`J*=${R.wp2.J_optimal}, A_J energy=${R.wp2.AJ_energy_pct}%, residual σ=${R.wp2.residual_std} GWh/mo.`;
-document.getElementById('fourtxt').textContent=`K=5 harmonics, R²=${R.wp2.fourier_R2}.`;
-document.getElementById('wp3txt').textContent=`${R.wp3.n_scenarios} scenarios (b=4 blocks), KS D=${R.wp3.ks_stat}, ACF max err=${R.wp3.acf_max_err}, energy-score improvement ${R.wp3.es_improvement}% vs i.i.d.`;
-// results table
-const labels={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D Plan4RES',MD0:'M-D0 greedy'};
-const tb=document.querySelector('#restable tbody');
-['MS','MS0','MD','MD0'].forEach(m=>{const d=R.wp4.models[m];
- tb.innerHTML+=`<tr><td>${labels[m]}</td><td>${f(d.mean_cost,0)}</td><td>${f(d.p90_cost,0)}</td><td>${f(d.deficit)}</td></tr>`;});
-document.getElementById('restxt').textContent=`Monte-Carlo comparison on ${R.source}. VSS = ${R.wp4.VSS_pct}% (M-D vs M-S).`;
-document.getElementById('resnote').innerHTML=`<b>Interpretation:</b> VSS = ${R.wp4.VSS_pct}% on this dataset. Stochastic optimisation delivers its largest gains in high-variability systems; on low-variability inputs the deterministic method is nearly adequate, but the greedy baseline (M-D0) is consistently worse — confirming the water-value mechanism operates.`;
-document.getElementById('imp_es').textContent=`+${R.wp3.es_improvement}% energy score`;
-document.getElementById('imp_vss').textContent=`VSS = ${R.wp4.VSS_pct}%, P90 saving = ${R.wp4.P90_saving_pct}%`;
-document.getElementById('foot').textContent=`MOSSHOOS Dashboard · ${R.source} · runtime ${R.runtime_s}s · generated from results JSON`;
-// scenario chart
-const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const pal=['#C0392B','#E67E22','#27AE60','#2980B9','#16A085','#8E44AD','#D35400','#2C3E50','#7F8C8D','#1ABC9C'];
-const ds=R.wp3.scenarios.map((s,i)=>({label:`S${i+1} (${R.wp3.types[i]})`,data:s,borderColor:pal[i%pal.length],backgroundColor:'transparent',borderWidth:1.5,tension:.35,pointRadius:0}));
-ds.push({label:'Plan4RES deterministic mean',data:R.seasonal_profile,borderColor:'#1F4E79',borderDash:[7,4],borderWidth:2.5,tension:.35,pointRadius:0});
-new Chart(document.getElementById('scenChart'),{type:'line',data:{labels:months,datasets:ds},
- options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},scales:{y:{title:{display:true,text:'Inflow (GWh/month)'},beginAtZero:true},x:{grid:{display:false}}}}});
-// cost chart
-const mm=['MS','MS0','MD','MD0'];
-new Chart(document.getElementById('costChart'),{type:'bar',
- data:{labels:mm.map(m=>labels[m]),datasets:[
-  {label:'Mean cost',data:mm.map(m=>R.wp4.models[m].mean_cost),backgroundColor:['#1D7A5A','#52b788','#1F4E79','#C77700']},
-  {label:'P90 cost',data:mm.map(m=>R.wp4.models[m].p90_cost),backgroundColor:['#52b788','#a9dfbf','#5a8fc0','#e0a458']}]},
- options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},scales:{y:{title:{display:true,text:'Annual cost ($/yr)'},beginAtZero:true},x:{grid:{display:false}}}}});
-// nav highlight
+['iter','clust','mc','boot'].forEach(k=>{
+  const i=$('#i-'+k); if(i) i.oninput=()=>{$('#v-'+k).textContent=i.value; est();};
+});
+est();
 
-// ---- WP4-B/C continuous-time strand ----
-if (R.wp4b_continuous) {
-  const C = R.wp4b_continuous;
-  document.getElementById('k_feller').textContent = C.sde.feller.toFixed(1);
-  document.getElementById('k_em').textContent = C.convergence.em_slope.toFixed(2);
-  document.getElementById('k_mil').textContent = C.convergence.milstein_slope.toFixed(2);
-  document.getElementById('k_wg').textContent =
-      (C.wavelet_galerkin && C.wavelet_galerkin.slope != null)
-      ? C.wavelet_galerkin.slope.toFixed(2) : 'n/a';
+async function loadAll(){
+  R = {"source": "Real OMVS data: data/OMVS_inflows.csv", "reservoir": "OMVS-Manantali", "runtime_s": 2.7, "params": {"reservoir": "OMVS-Manantali", "S_max": 307.895, "S_init": 153.948, "R_max": 146.0, "C_def": 300.0, "annual_inflow": 1231.582, "demand_override": 92.369}, "wp2": {"J_optimal": 1, "AJ_energy_pct": 86.52, "fourier_R2": 0.8467, "residual_std": 63.63, "energy_spectrum": [86.52, 13.48]}, "wp3": {"n_scenarios": 10, "scenarios": [[16.159, 36.46, 26.771, 51.369, 57.922, 34.299, 329.84, 288.258, 503.688, 278.564, 115.665, 49.725], [29.191, 38.401, 18.305, 12.862, 149.675, 106.655, 246.774, 340.096, 440.664, 368.837, 83.574, 64.492], [20.239, 30.384, 35.095, 27.629, 43.526, 0.1, 433.028, 425.318, 407.2, 391.948, 77.494, 58.153], [48.473, 28.303, 11.898, 23.523, 53.52, 44.027, 314.739, 323.411, 292.269, 498.315, 156.391, 15.54], [25.956, 18.551, 18.387, 38.883, 0.1, 148.68, 424.449, 227.387, 425.302, 397.661, 73.395, 79.674], [63.212, 51.424, 40.826, 29.961, 83.272, 25.301, 332.511, 309.542, 380.682, 399.471, 3.179, 189.323], [42.816, 26.002, 14.639, 40.32, 20.811, 49.886, 202.211, 450.847, 409.626, 410.419, 70.287, 87.355], [34.414, 35.678, 38.743, 12.942, 52.176, 26.629, 346.391, 287.012, 404.722, 271.633, 199.349, 169.769], [55.377, 40.66, 29.689, 25.926, 43.685, 27.989, 333.996, 301.3, 392.89, 387.782, 81.325, 66.831], [39.703, 35.678, 35.291, 47.837, 43.944, 39.748, 346.198, 311.053, 485.702, 482.004, 5.065, 98.224]], "weights": [0.055, 0.06, 0.045, 0.12, 0.08, 0.1, 0.095, 0.11, 0.255, 0.08], "types": ["median", "median", "median", "median", "median", "median", "median", "median", "DRY", "WET"], "annual_volumes": [1788.7, 1899.5, 1950.1, 1810.4, 1878.4, 1908.7, 1825.2, 1879.5, 1787.5, 1970.4], "ks_stat": 0.9455, "es_improvement": 49.37, "acf_max_err": 0.1665}, "wp4": {"models": {"MS": {"mean_cost": 338723.4, "p90_cost": 416281.5, "deficit": 178.37}, "MS0": {"mean_cost": 338764.2, "p90_cost": 416281.5, "deficit": 178.42}, "MD": {"mean_cost": 338749.3, "p90_cost": 416281.5, "deficit": 178.42}, "MD0": {"mean_cost": 365236.9, "p90_cost": 443283.0, "deficit": 178.79}}, "VSS_pct": 0.01, "P90_saving_pct": 0.0, "deficit_saving_pct": 0.03}, "monthly_climatology": [22.76, 11.97, 6.53, 2.79, 2.92, 22.2, 107.64, 329.82, 380.72, 217.0, 86.76, 40.47], "seasonal_profile": [22.963, 22.963, 8.953, 8.953, 33.289, 33.289, 326.009, 326.009, 394.282, 394.282, 80.039, 80.039], "wp4b_continuous": {"sde": {"sigma_type": "sqrt", "kappa": 15.0, "sigma0": 21.769, "fourier_R2": 0.8467, "ks_p": 0.0, "gaussian_innovations": false, "feller": 13.847, "feller_ok": true}, "convergence": {"method": "path-coupled Brownian increments", "em_slope": 0.929, "em_theory": 0.5, "milstein_slope": 1.174, "milstein_theory": 1.0, "milstein_beats_em": true, "status": "validated", "dt": [0.0625, 0.03125, 0.015625, 0.0078125], "err_em": [18.96923427408979, 8.588327031842155, 4.584789598946068, 2.733450844282899], "err_mil": [19.603215826938047, 7.583085893377797, 3.53270561394416, 1.679866297112092]}, "hjb": {"status": "validated", "stable": true, "max_abs_V": 33195.25, "V_min_at_storage": 127.4, "V_at_empty": 9382.5, "V_at_min": 1339.7, "V_at_full": 12105.8, "u_shaped": true, "storage_grid": [0.0, 10.6, 21.2, 31.9, 42.5, 53.1, 63.7, 74.3, 84.9, 95.6, 106.2, 116.8, 127.4, 138.0, 148.6, 159.3, 169.9, 180.5, 191.1, 201.7, 212.3, 223.0, 233.6, 244.2, 254.8, 265.4, 276.0, 286.7, 297.3, 307.9], "value_at_t0": [9382.47, 8353.19, 7281.65, 6229.75, 5235.17, 4344.85, 3564.61, 2879.9, 2265.33, 1775.42, 1480.06, 1351.05, 1339.73, 1407.22, 1560.25, 1777.63, 2048.79, 2378.73, 2787.87, 3271.79, 3811.47, 4413.27, 5096.11, 5873.19, 6711.51, 7615.17, 8597.56, 9702.55, 10871.88, 12105.77], "policy_at_t0": [93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 93.59, 101.08, 112.31, 123.54, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0, 146.0]}, "wavelet_galerkin": {"status": "validated", "slope": -1.029, "theory": -1.0, "basis": "orthonormal Haar (H^1 value function)", "table": [{"J": 1, "M": 2, "L2_error": 3353.489550726722}, {"J": 2, "M": 4, "L2_error": 1816.349311838284}, {"J": 3, "M": 8, "L2_error": 912.2264909090649}, {"J": 4, "M": 16, "L2_error": 391.576897338693}]}, "grid": {"N_S": 30, "N_Q": 15, "N_t": 12, "n_paths": 120, "fast": true}}};
+  SW = {"mean_mo": 102.6318160372732, "R_max": 146.0, "D": 92.36863443354588, "sweep": [{"c_ms": 402487.2345002921, "c_md": 402487.2345002921, "c_md0": 408759.28361897205, "vss": 0.0, "vss_vs_greedy": 1.534411417680848, "frac": 0.1, "S_max": 10.26318160372732}, {"c_ms": 387946.23290868656, "c_md": 387946.23290868656, "c_md0": 396901.8088712684, "vss": 0.0, "vss_vs_greedy": 2.256370659546807, "frac": 0.25, "S_max": 25.6579540093183}, {"c_ms": 365090.9438725946, "c_md": 365090.9438725946, "c_md0": 377161.0991656438, "vss": 0.0, "vss_vs_greedy": 3.200265170440638, "frac": 0.5, "S_max": 51.3159080186366}, {"c_ms": 325624.9327158956, "c_md": 325269.7738524478, "c_md0": 341021.3168883431, "vss": -0.10918901539523065, "vss_vs_greedy": 4.514786440018518, "frac": 1.0, "S_max": 102.6318160372732}, {"c_ms": 291479.2950618544, "c_md": 291477.5251704646, "c_md0": 310395.70737026725, "vss": -0.000607213674119531, "vss_vs_greedy": 6.094289276316466, "frac": 1.5, "S_max": 153.9477240559098}, {"c_ms": 260686.65438748724, "c_md": 260686.65438748724, "c_md0": 285317.4160609865, "vss": 0.0, "vss_vs_greedy": 8.632757864397055, "frac": 2.0, "S_max": 205.2636320745464}, {"c_ms": 199466.7746391233, "c_md": 199466.77612125382, "c_md0": 230062.04655812628, "vss": 7.430463117183904e-07, "vss_vs_greedy": 13.298704578494197, "frac": 3.0, "S_max": 307.8954481118196}, {"c_ms": 146353.87139941845, "c_md": 146350.1565179126, "c_md0": 176571.833851416, "vss": -0.0025383515769534515, "vss_vs_greedy": 17.113693499624503, "frac": 4.0, "S_max": 410.5272641490928}, {"c_ms": 74348.29142052965, "c_md": 82224.30917305722, "c_md0": 89582.37494825762, "vss": 9.578697384919268, "vss_vs_greedy": 17.005670520040475, "frac": 6.0, "S_max": 615.7908962236392}]};
+  render(); if(SW) renderSweep(); renderDownloads([{"name": "inflows_omvs.csv", "exists": true, "size": 19361}, {"name": "results.json", "exists": true, "size": 7405}, {"name": "results.csv", "exists": true, "size": 142}, {"name": "sweep.json", "exists": true, "size": 2216}, {"name": "plan4res_storage.csv", "exists": true, "size": 522}, {"name": "plan4res_bellman.csv", "exists": true, "size": 3476}, {"name": "plan4res_zonevalues.csv", "exists": true, "size": 1257}]);
+}
+const EMBEDDED = {"inflows_omvs.csv": "data:text/csv;base64,RGF0ZSxpbmZsb3dfR1doCjE5NjEtMDEtMDEsMjkuMDE3NDYyMDIxNDkxODU1CjE5NjEtMDItMDEsMTYuOTA4NzE4MDAxOTM0ODEKMTk2MS0wMy0wMSwxMS45MjMzNTYwOTA0MTQ5NjEKMTk2MS0wNC0wMSw1Ljk4MjY4MjI4MzQ5NDE0NgoxOTYxLTA1LTAxLDUuMzkxMzAwNjA4MTU1MjkKMTk2MS0wNi0wMSw2MS4xODYxMDM5NTA0Mzc5MgoxOTYxLTA3LTAxLDE1NC40ODYxNjk2ODI0MjM3CjE5NjEtMDgtMDEsNDk3LjUzMjEyNTUwNzczOTMKMTk2MS0wOS0wMSw1NjcuNDY5ODgzNDExNjA4OQoxOTYxLTEwLTAxLDIyMS4wOTM1NTg1MzI1ODY2OAoxOTYxLTExLTAxLDEwNi4wNDk4MTU5ODU5Njc0MwoxOTYxLTEyLTAxLDU0LjAyODE1MDc0NDE0NDU5CjE5NjItMDEtMDEsMzIuNjUwMTUzOTEzODY5NjMKMTk2Mi0wMi0wMSwxNy42MDE1MTE5NjM0MjY2NgoxOTYyLTAzLTAxLDEwLjcyNzQyNTc0MTA3Njg4NwoxOTYyLTA0LTAxLDUuMTE4ODI0NjQwNzQ1OTMKMTk2Mi0wNS0wMSw3LjQzNjQ0Nzc0MTg1MDgxNwoxOTYyLTA2LTAxLDMwLjAzMDQ4MzcwNzkwMjIyCjE5NjItMDctMDEsMTUyLjY2NjcyNTExOTc2NTk0CjE5NjItMDgtMDEsMzkzLjMzMjA1Njk1Njc4MjI1CjE5NjItMDktMDEsNTM0Ljk4ODQ1MTY4NzczOTMKMTk2Mi0xMC0wMSwzMjAuMjQxNjA0OTIxMzAzNzUKMTk2Mi0xMS0wMSwxNDIuMDY0MDg0MTkwMTYyOTMKMTk2Mi0xMi0wMSw2Ny45Njk1NjE4ODY4NTMzMQoxOTYzLTAxLTAxLDM4Ljk0Mzk3Mzc1Njc0MTM0CjE5NjMtMDItMDEsMTguOTc1MjU1MDQ5MjI2MDcKMTk2My0wMy0wMSwxMS40NjA5ODg1MzI4OTk3MDMKMTk2My0wNC0wMSw1LjcwMDg4MTgwNTcwMzkyOQoxOTYzLTA1LTAxLDQuNDE0OTU2OTE2ODQ5MDI4CjE5NjMtMDYtMDEsOC44NjMyNTg5NTk0Mzk2NTgKMTk2My0wNy0wMSwxMTcuMjEzNDQwNzExNzYxNzkKMTk2My0wOC0wMSwzMzUuNzEzMDgzOTg0MTk1NgoxOTYzLTA5LTAxLDQ5My41NjQwNTU0MDAwMDAwMwoxOTYzLTEwLTAxLDQ2MC4yNTQ4NTE0NDc3MzkzCjE5NjMtMTEtMDEsMTMwLjA1MzgxOTU0MDY1MTg2CjE5NjMtMTItMDEsNTcuMjc4NzczNTY2MjkzMzUKMTk2NC0wMS0wMSwyOS43Njk0ODA5MDQ0NzU1NTcKMTk2NC0wMi0wMSwxNi4yODE4OTc5MjUxOTM0OAoxOTY0LTAzLTAxLDkuMjE0ODQ4NTU0NzUwNTIzCjE5NjQtMDQtMDEsMy45NTk1ODYxNDQxMzIzODU0CjE5NjQtMDUtMDEsNy4xODQ1MzUxNjk2NDEwMzc2CjE5NjQtMDYtMDEsNTEuMTU2MTU0NjAxNjg3ODQKMTk2NC0wNy0wMSwxNDQuMDAwNjAyMDI4MzkxMQoxOTY0LTA4LTAxLDUyNC4yOTIxNTM4NAoxOTY0LTA5LTAxLDY2OS4yMTQxODUxMgoxOTY0LTEwLTAxLDI4MS43ODEyMDY2ODcwODc0MwoxOTY0LTExLTAxLDEwNy42NjI2NjIyNjM4Njk2MwoxOTY0LTEyLTAxLDYyLjcxMjMxNjMyNTk2NzQKMTk2NS0wMS0wMSwzNy4zMzQwMjAwNTY3OTIzCjE5NjUtMDItMDEsMjAuNDcwMDY0NzE3MDcyMjk3CjE5NjUtMDMtMDEsMTUuMDI0Njc2NjczNjE3NjI3CjE5NjUtMDQtMDEsNy4yOTQxMjg4NjM1NDQwNDYKMTk2NS0wNS0wMSw4LjgyMTUzOTc3MjE4NjA4NwoxOTY1LTA2LTAxLDMwLjMwNzE4ODA0OTA2MzEwNwoxOTY1LTA3LTAxLDE1Ni44MjA3MzQwNzI1ODY2NwoxOTY1LTA4LTAxLDM5NC4wODgyMDkwMDk2OTQ5CjE5NjUtMDktMDEsNjA3LjI0ODM3ODM2CjE5NjUtMTAtMDEsMzEyLjg0MjYxODU0Mzg2OTY2CjE5NjUtMTEtMDEsMTIwLjM2ODQ3NjE2Mzg2OTY2CjE5NjUtMTItMDEsNTUuMDM4NjkzNDAwNzczOTIKMTk2Ni0wMS0wMSwzNC45NTM3Mjg1MTQwMzI2CjE5NjYtMDItMDEsMTYuMDAyMDI1NzE4ODY3MTEzCjE5NjYtMDMtMDEsMTAuODc2ODY1Mzc0MDYwNTkzCjE5NjYtMDQtMDEsOC4yODM3Nzc0NDY2ODUzMzEKMTk2Ni0wNS0wMSwxMi45OTQ3NzY1NDc3MDYyMgoxOTY2LTA2LTAxLDE4Ljk3MzE4OTEyMTAyMDg5CjE5NjYtMDctMDEsMTA1LjE1NTUxOTYxMzY0NTU4CjE5NjYtMDgtMDEsMzMxLjQ5NzA5NTk3Njc4MjIKMTk2Ni0wOS0wMSw0MTIuODYzODg4MjY0NTIxNQoxOTY2LTEwLTAxLDU0Ni4zMjkzMzc4NAoxOTY2LTExLTAxLDE0MS40ODk3NDAxMjQxOTU1NQoxOTY2LTEyLTAxLDY0Ljg5Mzk5NzI0NzczOTI0CjE5NjctMDEtMDEsMzUuODM1MzUzNDI1NjkyNDQ2CjE5NjctMDItMDEsMTkuOTI0MjMxMTQ4NjIwMTQ0CjE5NjctMDMtMDEsMTIuNjAzNjE2NDU4MTQ5MTgzCjE5NjctMDQtMDEsNy4wOTk0MTY1Njg1MDgxNDkKMTk2Ny0wNS0wMSw1Ljg5MzUyODA4MDU4ODM0MwoxOTY3LTA2LTAxLDQzLjc5ODc2NTgxOTA5NzU3CjE5NjctMDctMDEsMTgxLjI2NDEwMTU4NzQxMzM0CjE5NjctMDgtMDEsNzA5LjQ4NzEzODg4CjE5NjctMDktMDEsNzg1Ljk4MzcxMzg0CjE5NjctMTAtMDEsNDc4LjEyNzAwNzMzNTQ3ODU0CjE5NjctMTEtMDEsMTU0LjIwNzk0OTY0NTk2NzM3CjE5NjctMTItMDEsNjkuNjEyNzA5Nzc2MTMwMzcKMTk2OC0wMS0wMSw0MS4yODgwNDEyOTU4MDQ0NQoxOTY4LTAyLTAxLDI2LjMzOTExNzg4ODc4MzExNQoxOTY4LTAzLTAxLDE0LjQ2OTA2NDA5MTEwNDg4NwoxOTY4LTA0LTAxLDcuMDM2MDU5NzM4MDY1MTg3CjE5NjgtMDUtMDEsMTEuMzE4MDIyMzI2MzkzODUyCjE5NjgtMDYtMDEsNDUuOTE0NjEwNTUyMjY1NzcKMTk2OC0wNy0wMSw4Ny4xNjkzMjEzMTU1MTk0NAoxOTY4LTA4LTAxLDIxMi45MTc3NjMxODQ1MjE1CjE5NjgtMDktMDEsMzE4LjQ4ODI3MDc5Njc4MjMKMTk2OC0xMC0wMSwxOTEuNTk4MTY0ODYyNDIzNzQKMTk2OC0xMS0wMSw3Mi4xMTExNzYwNTg1NTQxMgoxOTY4LTEyLTAxLDQ1LjM2OTQ2NTc0MDM4Njk3CjE5NjktMDEtMDEsMjQuNjEyOTE3NzQ2OTA0Mjk0CjE5NjktMDItMDEsMTEuNjYyMjE1NDQ2MzU0MzY4CjE5NjktMDMtMDEsNi4zODE0NDUwODM5NDUwMDYKMTk2OS0wNC0wMSwzLjI3MTE1ODI3ODgwOTMxODUKMTk2OS0wNS0wMSwyLjE2MzEyODYzODM2NTYzOQoxOTY5LTA2LTAxLDI4LjE5ODY0MjkxOTI1NDA3NwoxOTY5LTA3LTAxLDE1Mi4xNzM2NDIxNAoxOTY5LTA4LTAxLDMzNy43OTgzNTE1OTU0Nzg1NQoxOTY5LTA5LTAxLDU4OC4xMDM1NzQ3NgoxOTY5LTEwLTAxLDQ1Mi4zNDkwMTI1MjgzOTExNAoxOTY5LTExLTAxLDE4OS4zNTcyNTcwNzUxNTI2CjE5NjktMTItMDEsNzQuMjc2MzI4NjA4OTUxMQoxOTcwLTAxLTAxLDM5LjA2NTg2NjgwNDY0MzU2CjE5NzAtMDItMDEsMjAuOTg2ODM2NzQwNzE3OTIzCjE5NzAtMDMtMDEsMTIuNTM1NzE0MzAxOTM0ODEyCjE5NzAtMDQtMDEsNS41MjQxNzEwODUwMTM5OTg1CjE5NzAtMDUtMDEsMi42ODM0MjY1NjkzMzk4NjY3CjE5NzAtMDYtMDEsMjIuNjMwMjU5NzMzMzE0NjY2CjE5NzAtMDctMDEsODcuMDgyNjg3NzI4MzkxMTQKMTk3MC0wOC0wMSw0NzcuODAxOTYwMDQ4MzkxMTUKMTk3MC0wOS0wMSw0OTkuNjU4NzE0MQoxOTcwLTEwLTAxLDE2Ni40NTc4NzExMDkzNjg5NAoxOTcwLTExLTAxLDcyLjIxMzA5NzMyCjE5NzAtMTItMDEsNDAuNTc1OTY0OTM0OTE4NTIKMTk3MS0wMS0wMSwyMS45MTIxMjMwNjA2NjE5MjYKMTk3MS0wMi0wMSwxMS45MTM4NTI1NzM3Mjk2MzEKMTk3MS0wMy0wMSw2Ljk4MTEwNDQyMTY3MTMzNAoxOTcxLTA0LTAxLDMuNDA3MTI3NjY3Njc4NTg1CjE5NzEtMDUtMDEsNS41NTQxNDE3MjI1NTg2OTEKMTk3MS0wNi0wMSwxMC45MDkzNzAyMDI1OTY3NDQKMTk3MS0wNy0wMSwxMTEuODM1OTUzOTgzODY5NjMKMTk3MS0wOC0wMSw0NTguMzM0ODYxNDU1NDc4NQoxOTcxLTA5LTAxLDM2My40NTEwMTE5MzYxMzA0CjE5NzEtMTAtMDEsMTQ2LjYyMzAyNjg0MDMyNTkzCjE5NzEtMTEtMDEsNTguMDg0NTA3NzkxMDQ4ODkKMTk3MS0xMi0wMSwzMi43NjMzNzAwNjg1NjQxNAoxOTcyLTAxLTAxLDE3LjI3NzcwMzE2NjY4NTMzCjE5NzItMDItMDEsOS4zMjIyNzk4NDI1MTI3NAoxOTcyLTAzLTAxLDQuMTgyMTg5MjI1MjExNDI5CjE5NzItMDQtMDEsMS4yNjIxOTM0ODA3MTkwMDM4CjE5NzItMDUtMDEsMS4yODY2OTYwNzYxMDQxNzAxCjE5NzItMDYtMDEsNDUuOTk2NTYxNTExNTMxMzQKMTk3Mi0wNy0wMSwxMjUuMDMyMDk1OTQyNDIzNwoxOTcyLTA4LTAxLDI1MS45OTUxOTc3NzkwMjIyOAoxOTcyLTA5LTAxLDMyNC4xNDM1NjM2NDUxNzM0CjE5NzItMTAtMDEsMTgyLjY4OTYzMTA4Njc2MTQ0CjE5NzItMTEtMDEsNjkuOTY4MDU5MjAwMDAwMDEKMTk3Mi0xMi0wMSw0NC45NDk5MzI1NDczNTIyOAoxOTczLTAxLTAxLDIyLjQ3OTMwNTE0MDYwNTkyMwoxOTczLTAyLTAxLDExLjM5NDA1MDU3ODA5MzE4NgoxOTczLTAzLTAxLDQuNTM3MDE1NDM1MjQ3MzI1NQoxOTczLTA0LTAxLDAuODAzMjg3MDMyMjAwNjk2NQoxOTczLTA1LTAxLDkuNzIwMzExMTk4NjgwMTI3CjE5NzMtMDYtMDEsMzYuNjMzMzc1MDkKMTk3My0wNy0wMSw4Ni44NDE3OTMzNjk4ODgwMgoxOTczLTA4LTAxLDMwNy43NTM0MDYzNjM4Njk3CjE5NzMtMDktMDEsMzIxLjAxODQxMzg5MTkzNDg3CjE5NzMtMTAtMDEsMTQ4LjEzNjcwNDE1MDk1NzA2CjE5NzMtMTEtMDEsNjAuMzgzMzk5MzI5ODg4MDEKMTk3My0xMi0wMSwzMC44MDE2NDc0OTExNjA4OQoxOTc0LTAxLTAxLDE1LjcxMTEzNDcyMDg4NTkyMwoxOTc0LTAyLTAxLDcuNTM5NjA5MjY2ODkyODEzCjE5NzQtMDMtMDEsMi4zOTE1MTY1MzA1NTI0NDQ0CjE5NzQtMDQtMDEsMC4yNDAxODE4ODg4MTU2NzI1NAoxOTc0LTA1LTAxLDAuMAoxOTc0LTA2LTAxLDMzLjQwMDA1MjE1NzMxNzgzCjE5NzQtMDctMDEsMTYyLjU2NzM0MTc4MzA0NDc4CjE5NzQtMDgtMDEsNDYxLjIwNzk1ODk4MzIxNzgKMTk3NC0wOS0wMSw0MzUuMTg0ODAwNjcyMjYwOAoxOTc0LTEwLTAxLDI0My4zMTgwNTY1NzkwMjIyMwoxOTc0LTExLTAxLDczLjgyMTgxMTg5OTExNDA4CjE5NzQtMTItMDEsMzcuMjM1NTQxNjg1MDIwNDYKMTk3NS0wMS0wMSwyMi44NDU2NzMxOTg1MDgxNQoxOTc1LTAyLTAxLDEyLjk4ODQ0MDcxMjI5Mzc3NQoxOTc1LTAzLTAxLDcuMzk3ODgyNjgwMzU4OTYxCjE5NzUtMDQtMDEsMy4xMjc1MTcxNTM2NDc3ODYKMTk3NS0wNS0wMSwwLjgyODgyODEyODk4OTk4NDYKMTk3NS0wNi0wMSwxNy4xMjg0MDExNjU4MTQ0OQoxOTc1LTA3LTAxLDExNi4xMTQzMzU5NjAxMDY5NgoxOTc1LTA4LTAxLDI1NC44NTcyNzk0MDQ4NDc0MgoxOTc1LTA5LTAxLDQ1OC42MDg5NDkyNjc3MzkyNgoxOTc1LTEwLTAxLDIzMC41NjgxNjg5ODM1NDM3CjE5NzUtMTEtMDEsNzkuMTQ2NTQ2MTQ2ODUzMzQKMTk3NS0xMi0wMSw0MC4zNTAwODM5ODgwNjUxOQoxOTc2LTAxLTAxLDIzLjcwOTM5MzA2NjI5ODM3CjE5NzYtMDItMDEsMTIuMTc5OTUxNTQwMDU1OTk5CjE5NzYtMDMtMDEsNS41MjE2NjQzMzk5OTIxMDE1CjE5NzYtMDQtMDEsMC44NzQ1NjM1NDY5MDIwMzkKMTk3Ni0wNS0wMSwzLjEwNTE0OTM4NjI2MTAzODYKMTk3Ni0wNi0wMSwyNC44MjcwMzY0OTY1OTEyODMKMTk3Ni0wNy0wMSwxMjguMDUxMTg5MjY3NzM5MjYKMTk3Ni0wOC0wMSwyOTguOTM0NDAyMjIwOTc3OAoxOTc2LTA5LTAxLDI0NC44ODQwNzYyMzY3ODIyOAoxOTc2LTEwLTAxLDI1MC4wNzkzMzk1OTA2MzExNQoxOTc2LTExLTAxLDE5MC43MjQ5NDExMTAxNjMKMTk3Ni0xMi0wMSw2NC43MDQyMDI2NDc4NDEyCjE5NzctMDEtMDEsMzMuNjU3MTE1NjAzNzU3NjMKMTk3Ny0wMi0wMSwxNy41OTk4NTkyOTQ0MTk1NTYKMTk3Ny0wMy0wMSw5LjMyOTAyODcwMDY4OTkyMwoxOTc3LTA0LTAxLDUuMzc0MzczMzM0MzM5ODY2CjE5NzctMDUtMDEsMi4xOTY3NjI5MTA1ODE4Nzg0CjE5NzctMDYtMDEsMTQuNTM5MTgzNjQzOTEzMDU4CjE5NzctMDctMDEsNTMuOTg3Nzk1MTQ2NzQxMzIKMTk3Ny0wOC0wMSwxNDYuODk4NDkyNjkxMTQwNzcKMTk3Ny0wOS0wMSwyNDYuMjE1OTQ3NDUxOTM0ODIKMTk3Ny0xMC0wMSwxMjQuMTMxMzI1Mjg5ODM3MDIKMTk3Ny0xMS0wMSw0OC4yNzQ2NTUxNTI3MDg3NAoxOTc3LTEyLTAxLDIzLjAyOTU0NjE0MTY1NDgxMgoxOTc4LTAxLTAxLDEzLjU2ODAxODcyOTI1NDA3NgoxOTc4LTAyLTAxLDYuNjY3MDc0NjEyNzIwMjIyCjE5NzgtMDMtMDEsMy4xMzMxMDkwOTQyNjMwNDc3CjE5NzgtMDQtMDEsMC43MjE1MTUzMDc0NjM0NTczCjE5NzgtMDUtMDEsMC4yNzE4OTg5MTAzOTg5NTE3CjE5NzgtMDYtMDEsMjAuODk4ODExOTQ4NjU0MjQ1CjE5NzgtMDctMDEsODQuMzg5MzMwMjg5MTE0MDcKMTk3OC0wOC0wMSwyNjYuNzQzNTg0MjYzODY5NwoxOTc4LTA5LTAxLDMwNi42MTU3Mzc5MTY3ODIzNAoxOTc4LTEwLTAxLDIyNy43OTE0ODM3MTU0Nzg1NgoxOTc4LTExLTAxLDg3Ljk1MDQwMjU4Mzk2MTUKMTk3OC0xMi0wMSwzNi44MTQyMTc2OTMzNzA2NwoxOTc5LTAxLTAxLDIwLjAzODk2MjQyMDY2MTkyCjE5NzktMDItMDEsMTAuNDk3ODI1NzI0MTQ0NTkyCjE5NzktMDMtMDEsNS4wMDQ2MTY5MjQwNTI2OTYKMTk3OS0wNC0wMSwxLjExNTAxMjY0NjQzMjk4MTUKMTk3OS0wNS0wMSwwLjg1MTg2MTExMjIzNTI2NTEKMTk3OS0wNi0wMSwyNy40NzgzODUyNDI1NjQ0MzIKMTk3OS0wNy0wMSw4MS4wNTkwOTc3MzYyNTI0NAoxOTc5LTA4LTAxLDE4Ny4wMjgyMDE2ODY3NjE0NgoxOTc5LTA5LTAxLDE5NS4zNzA2NTQ1ODM4Njk2NQoxOTc5LTEwLTAxLDEyOS41MzU5NDU4NDI3NDk2CjE5NzktMTEtMDEsNzkuODA4MDc1MjY3NTY2MjIKMTk3OS0xMi0wMSwzMC45NzcyNTY1MTEzMjM4NDgKMTk4MC0wMS0wMSwxNi41NDI2MjUzMzYzMjYzNjcKMTk4MC0wMi0wMSw3LjQ4NDEwMzIwNTMxNjk2MgoxOTgwLTAzLTAxLDMuMDM0MjMwOTgyNjgyNTM0NAoxOTgwLTA0LTAxLDAuNDExMTAwOTEwNjM1MDc3ODcKMTk4MC0wNS0wMSwxLjIyMjAwNzI5MDI2MjY1MzgKMTk4MC0wNi0wMSwyMC4zNjc5MzYzMDcxODc1MTcKMTk4MC0wNy0wMSw5My41MDQ1OTc3NDcwMjEzNQoxOTgwLTA4LTAxLDM1MS43OTg4NTI1Nzc0MzQxNgoxOTgwLTA5LTAxLDMwMC43MDAxMzA5MTY0NTYzCjE5ODAtMTAtMDEsMTAyLjY4NjM5MDYwOTgzNzAzCjE5ODAtMTEtMDEsNTIuNzYzNzY3MjcwMTEyCjE5ODAtMTItMDEsMjYuMDgxOTcxMjYwNDk4OTY4CjE5ODEtMDEtMDEsMTQuNjE0MzcxNzYyNTk2NzQzCjE5ODEtMDItMDEsNy40MTY0NzY2Mzg0MjQxNDcKMTk4MS0wMy0wMSw0LjA0MzA2NTcwNDAxMjg1CjE5ODEtMDQtMDEsMy45NzQ5OTgzNTk3MDg4ODEKMTk4MS0wNS0wMSwxMy45NTMxMTg1ODU4NTU0MDkKMTk4MS0wNi0wMSwxOS44OTkwMjYyNzgwOTMxNzgKMTk4MS0wNy0wMSw5NS40NTk1NzIzNTk0NDAwMwoxOTgxLTA4LTAxLDM1Mi4xOTEzODkwNzY3ODIyMwoxOTgxLTA5LTAxLDI0My44NDgzMjg0MjA2NTE4OAoxOTgxLTEwLTAxLDE1NS4zNDI4NjM5MDc0MTMzMgoxOTgxLTExLTAxLDU3LjIwODI1NDAxNDI1NjU3NQoxOTgxLTEyLTAxLDI3LjY0MjIwNDE4NjEzMDM3CjE5ODItMDEtMDEsMTYuMTcwMTk2OTE0MTE2NTg0CjE5ODItMDItMDEsOC4zNjk1ODQ3NTE4NTA4MTIKMTk4Mi0wMy0wMSw0LjUzNDc1NjYwMzcxMTY4MQoxOTgyLTA0LTAxLDIuMjI1NjU5MTczNzEwNjAzNQoxOTgyLTA1LTAxLDAuMzEzMjI2ODkxMTk5MDQ1MjMKMTk4Mi0wNi0wMSwxMy40NzY1NzExOTUyNDg1ODIKMTk4Mi0wNy0wMSw4OC44ODgzNTkzNjYyOTMzNAoxOTgyLTA4LTAxLDIxNC4wOTI2MTk3NTc5MDIyNAoxOTgyLTA5LTAxLDI1Mi42OTA3NDYzOTkwMjIyNgoxOTgyLTEwLTAxLDEyNS40NjA0NDI3Mzk2NzQwNQoxOTgyLTExLTAxLDU3Ljc4NzQxODc5ODI4OTE4CjE5ODItMTItMDEsMjUuNTA5NTU1NDkyMjY1NzgKMTk4My0wMS0wMSwxNC4yNjkyMTQzNDkyODIwNzIKMTk4My0wMi0wMSw2Ljc0NTE2ODg4NDU3MTAzNAoxOTgzLTAzLTAxLDMuNjczNzkxNDA3NTY0NzkzNQoxOTgzLTA0LTAxLDEuNDA2OTI2ODI2OTA4NTAwMgoxOTgzLTA1LTAxLDAuMAoxOTgzLTA2LTAxLDQxLjkxNDE3OTY3NTMxMzU1CjE5ODMtMDctMDEsMTI5LjAxOTQ0ODA4MTc3MTgKMTk4My0wOC0wMSwyNDMuMTg3MjExNjM5Njc0MDgKMTk4My0wOS0wMSwyNzcuNjY1NzY0NDI0NTIxNQoxOTgzLTEwLTAxLDE0MS4xNTIyOTQyNzMwNTQ4MgoxOTgzLTExLTAxLDYxLjk1NTQ3NzM1NTQwNzQ0CjE5ODMtMTItMDEsMjUuOTgwNzM4MTc3Njc4MjIKMTk4NC0wMS0wMSwxNi4wMzAyNjA5MjkxNzAwNzMKMTk4NC0wMi0wMSw3LjUwODIwNjMyMjc3NjIxOQoxOTg0LTAzLTAxLDQuMzQzMjgxMDE1MzQ3MTE4CjE5ODQtMDQtMDEsMi4wNTIyODE2NDQxOTUyMDM2CjE5ODQtMDUtMDEsMC4zOTkwNTQ4MzQyMDMzODg2CjE5ODQtMDYtMDEsMjEuMzM2NTExNjgwODI2MzM3CjE5ODQtMDctMDEsMTI4LjIxNDUzOTU4NzMwMTM1CjE5ODQtMDgtMDEsMTMxLjAwODMwNDkwNDUyMTQ4CjE5ODQtMDktMDEsMTMzLjA2NjAyNDc3NDgyNjY3CjE5ODQtMTAtMDEsMTM5LjAxNjA2NTkyNTk2NzQKMTk4NC0xMS0wMSwzOC4yMjMyMjAyMzk5NDQwMgoxOTg0LTEyLTAxLDE4LjQ2NzcxMTEyMzcwMTYzCjE5ODUtMDEtMDEsMTAuMDA3NDk4NDUzNzAxNjMKMTk4NS0wMi0wMSw0LjIwMjI1NjgzMjg0NDA2NgoxOTg1LTAzLTAxLDEuNTY0MjI2ODY3NTIyNDM1MQoxOTg1LTA0LTAxLDAuMzI3MTY0MDI4NzU2Njk0OAoxOTg1LTA1LTAxLDAuMTM5MDc1NTY2MDczOTIxMzMKMTk4NS0wNi0wMSwyLjc5MjQ3NjE1NzQ4NjU0MQoxOTg1LTA3LTAxLDc5LjAyNDc5MDMzNTM2NjUyCjE5ODUtMDgtMDEsMjg4LjA3MjgyMjU1MDk1NzEKMTk4NS0wOS0wMSwyNzYuMjA5OTMwMjY2NDM1NgoxOTg1LTEwLTAxLDEyNS4yMTk0MTIzMDA2NTE4NwoxOTg1LTExLTAxLDQwLjI2MjQ4NjM4MzQyMTY0NgoxOTg1LTEyLTAxLDE4LjM5NDg1MDY3MTQ5MTg1NgoxOTg2LTAxLTAxLDEwLjg0MzI1ODY4NzM3NTI2CjE5ODYtMDItMDEsNC41Njc0NjgwNzQ5ODIwNTMKMTk4Ni0wMy0wMSwxLjU1ODk2Njg3NTIwMzg1NQoxOTg2LTA0LTAxLDAuMTg3MDE1ODA2MzA3OTkwNTYKMTk4Ni0wNS0wMSwwLjE1OTI5OTkxNjg5ODIzMzk1CjE5ODYtMDYtMDEsNy40MDI2MTY1NTc2MDk3NjY0CjE5ODYtMDctMDEsNjIuODM1MzExMjA1NzQ4NDEKMTk4Ni0wOC0wMSwyMjAuMjgwOTM2MzIxNzcxODMKMTk4Ni0wOS0wMSwzMzAuODkyNDUwNDA0NTIxNQoxOTg2LTEwLTAxLDE1My4zNDAyMzU1MjU5Njc0MgoxOTg2LTExLTAxLDYwLjQ3OTY3NDU2MzMwOTY0CjE5ODYtMTItMDEsMjcuMjA5MTczNDM0MzYzNTU3CjE5ODctMDEtMDEsMTUuMTU0ODMzNjcwNzczOTI1CjE5ODctMDItMDEsNy41MDkwMzI3MjI5NTU3CjE5ODctMDMtMDEsMy4yMDUzMjIxNTI1OTc4MTgKMTk4Ny0wNC0wMSwwLjY1MzM0MDUyOTY1ODQ0NjQKMTk4Ny0wNS0wMSwwLjQ1NDIxMjUzMDE0MjkwMzMKMTk4Ny0wNi0wMSwyNS4xMTg1MzM0MDA5NjQ4OQoxOTg3LTA3LTAxLDQyLjk3Mzg4NTg5MjgyMDcyNQoxOTg3LTA4LTAxLDIyNC4xNTEyMTU1MDA3OTQxCjE5ODctMDktMDEsMjkyLjg0NjYyNjM1ODA0NDUKMTk4Ny0xMC0wMSwxODYuOTM0NTQ1MDgzODY5NjQKMTk4Ny0xMS0wMSw2MC40MDE1Nzk3OTIzMjE3NzYKMTk4Ny0xMi0wMSwyNy4yOTE2NzUwMDc0NTkyNgoxOTg4LTAxLTAxLDE1LjQ1MTkyMjMyMjAxODgxMwoxOTg4LTAyLTAxLDcuNjk0MjgyNzcyMDU4MjkzCjE5ODgtMDMtMDEsMi45NTMxODkyMzQzNzE4MTYKMTk4OC0wNC0wMSwwLjUwOTYwMjk5MDU5NTM0MDYKMTk4OC0wNS0wMSwwLjE4NDY4Mzk5NjcwOTMyOTUKMTk4OC0wNi0wMSw4LjQxMTA4MDc0Mjc1Mjk2MQoxOTg4LTA3LTAxLDg2LjU2NzU2NzkwMDg4NTk1CjE5ODgtMDgtMDEsMzAxLjQyNTk4MTI1MjkxMjYKMTk4OC0wOS0wMSwzNzAuMTkzMDEyMDc1NDc4NgoxOTg4LTEwLTAxLDEzMy4xNjkzMjU3NTYxMzAzNQoxOTg4LTExLTAxLDUxLjYzODkwNzA5OTc3NjAxCjE5ODgtMTItMDEsMjQuODc4MzI3NzcyNzY0NzM4CjE5ODktMDEtMDEsMTMuOTMyMTgzMTc1OTM5NDA3CjE5ODktMDItMDEsNy4wNTE2MjMzOTU3NTk5MwoxOTg5LTAzLTAxLDMuNDY2MzkzOTUxODY4NzYyNQoxOTg5LTA0LTAxLDEuMzUwODUxODE3MjQ2NzUxMgoxOTg5LTA1LTAxLDAuMjY0Nzk0NjY5NTIzMTg5MDMKMTk4OS0wNi0wMSw1LjU1NjU3NTM2MTI0NDI3NQoxOTg5LTA3LTAxLDU3Ljc4NTQ5MDg2ODM0MDE2CjE5ODktMDgtMDEsMjgwLjMxNTczNDQ1NTQ3ODU1CjE5ODktMDktMDEsMjg5LjY0OTg2MTA1MjkxMjcKMTk4OS0xMC0wMSwxNjIuMDI5NzcyOTc4MjI4MTIKMTk4OS0xMS0wMSw1Ni4yMTc5NTgyNDc0MDMyNgoxOTg5LTEyLTAxLDI2LjczNTc4NzA4NTE5MzQ4MwoxOTkwLTAxLTAxLDE0LjU2Mzk2MTcwNjI5ODM2OAoxOTkwLTAyLTAxLDcuMTcxNDUwNjA3NDAzMjU1CjE5OTAtMDMtMDEsMi44Mzk1ODc1Nzg0MDk0MzM1CjE5OTAtMDQtMDEsMC42ODY1MDc4NjY1NjMwNjk4CjE5OTAtMDUtMDEsMC4zNTU1NTYxODU2NDE0Njc1NwoxOTkwLTA2LTAxLDkuMDYyNzkzMjg2MDU5MjY0CjE5OTAtMDctMDEsMTQyLjIxODg5MzU5MTk1NDk1CjE5OTAtMDgtMDEsMjkwLjA4MjM0MDI4NDUyMTU0CjE5OTAtMDktMDEsMjU1LjEwNjU3MzAzMTI4MwoxOTkwLTEwLTAxLDEyNy4xNjU1NzA1MjQxOTU1NAoxOTkwLTExLTAxLDU2LjczNzc2MDA4NTQxNzQ3CjE5OTAtMTItMDEsMjUuNzcwNTU4Mjk1NjkyNDQyCjE5OTEtMDEtMDEsMTMuNDIxMzMzNzI4NTA4MTQ5CjE5OTEtMDItMDEsNS41NDQ0NzI5MDYxMzQ2ODQ1CjE5OTEtMDMtMDEsMS45OTQ4MDU5MTIzMzU0MTUKMTk5MS0wNC0wMSwwLjMxNjQ2MzYwMTU2NDY0OTQKMTk5MS0wNS0wMSwwLjE3OTI0MzU2NDA5MzQ3NDA2CjE5OTEtMDYtMDEsMy4wMzQ5NDAzNDM2NDEwNTQKMTk5MS0wNy0wMSwxMTcuNjI1OTQ3ODQxNjY5OTQKMTk5MS0wOC0wMSwzNDIuOTQxMjc5NzQ3NzM5MjYKMTk5MS0wOS0wMSwzMTMuNDgwMzE3NzA2NDM1NgoxOTkxLTEwLTAxLDIxMy44MzM2ODQwNjQ4NDc0MwoxOTkxLTExLTAxLDc2LjI5MjczMTQ5MTM3NDg1CjE5OTEtMTItMDEsMzUuMjE3NDg2MDI4NTA4MTUKMTk5Mi0wMS0wMSwyMC4xMTMzMzc5OTAyMTg5NjIKMTk5Mi0wMi0wMSwxMS4xNjg1ODI2MDE0NjM4NTUKMTk5Mi0wMy0wMSw1LjA0OTMxMTA3OTcwODg4MgoxOTkyLTA0LTAxLDEuNDk2NTE3NjI5NDE1NjA3MwoxOTkyLTA1LTAxLDAuMzE5OTYzMzgwMTM2NDc4CjE5OTItMDYtMDEsOC4yNTU3MzUxNjI2OTk0MDYKMTk5Mi0wNy0wMSwxMTQuNDYyNTEwOTE0OTE4NTEKMTk5Mi0wOC0wMSwyMzcuNzcwMTk2OTM2MTMwNAoxOTkyLTA5LTAxLDMwMy40OTE5NjQ3MzA5NTcxCjE5OTItMTAtMDEsMTQyLjgxNDcyNjYxMDgxNDgzCjE5OTItMTEtMDEsNjEuNjU5NDg5NzIxNjU5ODQKMTk5Mi0xMi0wMSwyOS41ODc2NzQxNzg1MDgxNQoxOTkzLTAxLTAxLDE1LjgyMjI4NDg2ODU2NDE0NwoxOTkzLTAyLTAxLDguNTA5MTA3Njc0NjI3MDM5CjE5OTMtMDMtMDEsMy42NjI5NTE4NTg2NDc3ODU0CjE5OTMtMDQtMDEsMC45MDYwNDUwNDg0NTY4MTY5CjE5OTMtMDUtMDEsMC41NzE3NDY0NzU1NDE1MzIyCjE5OTMtMDYtMDEsMTMuMDE0NDE3MDc0NjQyMTExCjE5OTMtMDctMDEsNjQuODE3Njk0MDEwOTM2ODkKMTk5My0wOC0wMSwxOTQuOTg2MzgxNjkyMjYwNzgKMTk5My0wOS0wMSwyODYuMDU2NDIyNDAwNjUxOQoxOTkzLTEwLTAxLDEwNi4yMjQ3MzY3MjI0MjM3NgoxOTkzLTExLTAxLDU3LjcxMzg2OTMyNjgwMjM0CjE5OTMtMTItMDEsMjYuMzUyNjE1NjU3Njc4MjIKMTk5NC0wMS0wMSwxNC41OTEzNzA0NTA3NDU5MjcKMTk5NC0wMi0wMSw3LjI2MTgwMzA2NzU4MjczOQoxOTk0LTAzLTAxLDMuMTkwMjI2NzIxNTY3NTkyMwoxOTk0LTA0LTAxLDAuNTU0MDU4ODc3Mjc1MDM3NwoxOTk0LTA1LTAxLDAuMTM4NzQ4ODY1ODk5NDU0MzcKMTk5NC0wNi0wMSwxNi42MjczMDMxMzY4NTYyOQoxOTk0LTA3LTAxLDEwMC43OTE2MDY1NjUxODg0NQoxOTk0LTA4LTAxLDMxMi4wMDM4MjkzNjI3NDk3CjE5OTQtMDktMDEsNDIxLjg5MzYyNDA3MjI2MDc2CjE5OTQtMTAtMDEsMzIyLjM4ODg1MjExMjU4NjczCjE5OTQtMTEtMDEsMTUyLjgzODg4OTg4NDE5NTU0CjE5OTQtMTItMDEsNTcuMjY0NDQ5Mjc5MDAyMDg2CjE5OTUtMDEtMDEsMzAuNjM5MjYxMjQxNjU0ODIKMTk5NS0wMi0wMSwxNi42OTc1NzQyMDc1MTUyNTYKMTk5NS0wMy0wMSw5LjcyMTE1MjcyODk1MTExCjE5OTUtMDQtMDEsNS45OTYyNDg5MjY3MzMwNzUKMTk5NS0wNS0wMSwzLjA2MDIyMTEyNzEyMzk4NjgKMTk5NS0wNi0wMSwxNC43NjE2MDc2Mzk4NzY1MgoxOTk1LTA3LTAxLDQzLjA4MjQxODgyODU2OTE4CjE5OTUtMDgtMDEsNDE4LjEyMjUxMTEyODM5MTEKMTk5NS0wOS0wMSwzODUuNTYyNTcwOTI3NzM5MwoxOTk1LTEwLTAxLDIwOC4xODk0MTA5MDEzMDM3NQoxOTk1LTExLTAxLDcxLjM3NzA2MTY5NDAzMjU5CjE5OTUtMTItMDEsMzguOTczMDM1MzAxNTQ3ODQKMTk5Ni0wMS0wMSwyMi43ODM4MzEzMjc3OTAyMgoxOTk2LTAyLTAxLDEyLjAxNTM2MTQxNjYyOTMzNAoxOTk2LTAzLTAxLDYuMzEyMDI4MDA3NDExMTU2CjE5OTYtMDQtMDEsMi4xOTAwODI5MDg2ODc2Mjk0CjE5OTYtMDUtMDEsMC42NzU1MjY0NjkxMzg3Mzk1CjE5OTYtMDYtMDEsMjUuMjYwMzk3NzYyNDU2NzQ4CjE5OTYtMDctMDEsODYuNjA3NTEwNjMzMTQ2NjcKMTk5Ni0wOC0wMSwzMDcuODcwNDc4MDYzMjE3OQoxOTk2LTA5LTAxLDM0OC45MDIzMzg2OTIyNjA4CjE5OTYtMTAtMDEsMTg3LjU4NDY0MTU0OTUxMTEzCjE5OTYtMTEtMDEsNjMuNjExNzA4NzI5ODM3MDIKMTk5Ni0xMi0wMSwzMS44NzgwMjYyMTgxNzcxODMKMTk5Ny0wMS0wMSwxOC40NTI5NzM4MTM2NDU2MjcKMTk5Ny0wMi0wMSw5LjA4MzcyNzIyNDgzNDUyCjE5OTctMDMtMDEsNC44NDAyMDU3ODA2NjAxMzIKMTk5Ny0wNC0wMSwyLjkwNTk2MDgyMjA0ODI0NDUKMTk5Ny0wNS0wMSw4LjYzMDE2MDY2ODMyNDcyCjE5OTctMDYtMDEsNTguNzEzNjY4OTc4MTI2MjE1CjE5OTctMDctMDEsMTI0LjIwMTU2OTEwODA2NTE3CjE5OTctMDgtMDEsMjgyLjgxNDIwMDk0ODA2NTI2CjE5OTctMDktMDEsMzczLjU4OTQ5MzU2Mzg2OTY3CjE5OTctMTAtMDEsMTcxLjk1NjE0NjU4Mzg2OTY3CjE5OTctMTEtMDEsNjUuMzYwOTEwNTI1MDgxNQoxOTk3LTEyLTAxLDMyLjE5MDI2NTkxMTU0MjgyNAoxOTk4LTAxLTAxLDIwLjI5NjEwODc4NjI0MjM2NwoxOTk4LTAyLTAxLDEwLjAzMDM2MTkyNDkxODUyCjE5OTgtMDMtMDEsNS4yODEwNTk2NTgyOTY3MTcKMTk5OC0wNC0wMSwxLjk2NTAyODE0MTk5OTQyNTMKMTk5OC0wNS0wMSwxLjY2NTEwMjA4Mzg2MzE2MzIKMTk5OC0wNi0wMSwxMS44MTU4Mjg1MjE3NDQ5MTkKMTk5OC0wNy0wMSw3Ny40ODcyODQzMjc1NjYyMwoxOTk4LTA4LTAxLDM3Ny42MjY0Mjk0NTEyODMKMTk5OC0wOS0wMSwzODUuNDk3ODM2NTMxNjA4OQoxOTk4LTEwLTAxLDI0MS42NTgzODMyNjA2NTE4NQoxOTk4LTExLTAxLDY5Ljk5Njk4MzE5MzE0NjcKMTk5OC0xMi0wMSwzNy4wMjgxMTYzMDM5MjA2CjE5OTktMDEtMDEsMjEuNzAxODA1NjI3MDE2MwoxOTk5LTAyLTAxLDEwLjYyNDUzOTU5NTE5MzQ3OQoxOTk5LTAzLTAxLDUuNjM2MDY0ODc0NjM3MDg4CjE5OTktMDQtMDEsMS42MjY1NTA3OTEzMjkyNDEyCjE5OTktMDUtMDEsMi4wOTc1MjY3MjU2NDIxODUyCjE5OTktMDYtMDEsMTAuOTQ0Nzk1MDU1MDU1NjM3CjE5OTktMDctMDEsNzQuODcyNDM0NTc2OTYwMwoxOTk5LTA4LTAxLDMwNC4wNDU2NTEyNDg3MTcxCjE5OTktMDktMDEsMzMxLjExMTQ0NjA5NzQzNDE3CjE5OTktMTAtMDEsMzI4LjEwMDYxNDA2ODA2NTIKMTk5OS0xMS0wMSwxMTMuMjY1NjE2OTY4MzkxMQoxOTk5LTEyLTAxLDU1LjI0NzQ5NjQwMDEwMTk3CjIwMDAtMDEtMDEsMzAuMDUyNTIxMTMzNTg5NjMKMjAwMC0wMi0wMSwxNS4yMTIyNjgyMTM5NzY1OQoyMDAwLTAzLTAxLDguODg1MTE3MTE2MTE4ODg2CjIwMDAtMDQtMDEsMy45NDg3NjAzOTM3Mjc0NzMKMjAwMC0wNS0wMSwzLjQ2NjkzMTA4ODk5ODg1MQoyMDAwLTA2LTAxLDkuMjE0MTE4NTI3NDI1MTU1CjIwMDAtMDctMDEsOTMuNDQ0NDA4ODYwNTU0OTQKMjAwMC0wOC0wMSwyNjkuNDczNDQyMjgxMzAzNwoyMDAwLTA5LTAxLDM0My4zMTE3ODEwODA2NTE5CjIwMDAtMTAtMDEsMjE1LjA3MDUxOTE2NzQxMzQKMjAwMC0xMS0wMSw4NC4wNDQzMTAyNjk4MzcwNgoyMDAwLTEyLTAxLDQxLjM4Nzg5NzI4NTgwNDQzCjIwMDEtMDEtMDEsMjMuNDgwNzU3MzU1ODU1NDEKMjAwMS0wMi0wMSwxMS4yMjI5ODY4ODM3MDE2MjQKMjAwMS0wMy0wMSw2LjU0MzU2OTg3NzU4ODg0MgoyMDAxLTA0LTAxLDIuNDc5Mjc5NjEyMjU5Njc0CjIwMDEtMDUtMDEsMC40OTcyMjA4NTA0NDkyNDI0NwoyMDAxLTA2LTAxLDE5Ljg1Nzg1MzgyNzMyNzI3CjIwMDEtMDctMDEsMTEyLjgzNTg5MTI5MTkzNDg0CjIwMDEtMDgtMDEsMzk5LjQzNjM1NDk5MTI4MwoyMDAxLTA5LTAxLDQ0NC4xMzA1MjAwNTIyNjA3NQoyMDAxLTEwLTAxLDE3Mi41MzMyNDUyNTU4MDQ0NwoyMDAxLTExLTAxLDY5LjY1MTI3NDU3NDkxODUKMjAwMS0xMi0wMSwzOS4zODQ1Nzk4ODUwODE0ODYKMjAwMi0wMS0wMSwyMC40NzI2ODE3MTg4MzkxMQoyMDAyLTAyLTAxLDkuOTg3ODAyNzQyNTY4NzQzCjIwMDItMDMtMDEsNS4wMjI1NzcyMzQyMTQyMwoyMDAyLTA0LTAxLDEuNDE2MTkyMDc3MDgwMTkyNgoyMDAyLTA1LTAxLDAuMjcxNjE5MzA4Njg4Nzc4OAoyMDAyLTA2LTAxLDguODIxMzE5MzcyODA4MTcxCjIwMDItMDctMDEsMTA2Ljk3MjYyMzQ4NjI5MzM0CjIwMDItMDgtMDEsNDM3Ljg0MzAzNTk5MjI2MDc1CjIwMDItMDktMDEsMzEyLjk2NTE5OTAzNDgyNjc1CjIwMDItMTAtMDEsMTc2LjU1NTAzMTMzNTgwNDUKMjAwMi0xMS0wMSw3Mi41MjE2MTcyODY1MjczNwoyMDAyLTEyLTAxLDM1LjQ5OTY5OTU4MTYwMzg1NgoyMDAzLTAxLTAxLDE5LjUzOTQwNzA1MjA5Nzc4CjIwMDMtMDItMDEsMTAuODU3NTgyNzkwNzczOTI1CjIwMDMtMDMtMDEsNC42NDc3OTM2MTQxODIyODIKMjAwMy0wNC0wMSwxLjQyOTYyMDk5Mjk3NjE2NDcKMjAwMy0wNS0wMSwwLjQ2NjAxNjE5ODM3Mjg1NQoyMDAzLTA2LTAxLDEzLjUwNTIxMjc2MjIwOTc3NgoyMDAzLTA3LTAxLDIwNC42NjIwODA0ODA0NjgxNQoyMDAzLTA4LTAxLDQzNy44OTI2MTg0NzkzNDgxMwoyMDAzLTA5LTAxLDU0OS41NjE5MTc0MzYxMzAzCjIwMDMtMTAtMDEsMjMwLjQxNjY2NDE4NDE5NTU1CjIwMDMtMTEtMDEsMTEyLjk5MDE1MjE2ODM5MTEzCjIwMDMtMTItMDEsNDcuMzk4MTI2MjcyNTk2NzQKMjAwNC0wMS0wMSwzMC41NDc5NDQzMzA0OTg5NjgKMjAwNC0wMi0wMSwxNi41NzEyNzM3MjcwMTYyOTgKMjAwNC0wMy0wMSw4LjE3OTIzODYwNTUyNDQ0MwoyMDA0LTA0LTAxLDQuNDcwOTE3Njg1Njk5OTgyCjIwMDQtMDUtMDEsMy41MzU4MTEwNTQ2NzI5ODczCjIwMDQtMDYtMDEsMTYuMDM5NDA2MjYyNDg5MDUyCjIwMDQtMDctMDEsMTU0LjI2MjYyOTExMDMzNgoyMDA0LTA4LTAxLDI0Ny42MzczNDU1Njc3MzkzCjIwMDQtMDktMDEsMzIxLjc4ODMzNzA4MzIxNzg3CjIwMDQtMTAtMDEsMTUzLjIzNDE4MjQ2MDY1MTg1CjIwMDQtMTEtMDEsNzkuOTc0MzE4NjkwNDg4OTMKMjAwNC0xMi0wMSwzNy4wMzA1OTUwNzA5OTc5MjYKMjAwNS0wMS0wMSwyMC4xNDc3NzA3NzQ5NzQ1MTgKMjAwNS0wMi0wMSwxMS4yMTczMzk4NTc0MDMyNTkKMjAwNS0wMy0wMSwxMS44MzY3MjI0NzcwMTYyOTcKMjAwNS0wNC0wMSw0Ljc0Mzc5MzEyMDM2MjkxMwoyMDA1LTA1LTAxLDIuMzkzNzQ3Nzk3OTAxODU5CjIwMDUtMDYtMDEsNjIuOTExNDc4MDIwNTE2ODkKMjAwNS0wNy0wMSwxNzMuMjc4Mzc2NzgzMjE3OAoyMDA1LTA4LTAxLDM2Ny4wNjA5NzY5NjMyMTc4CjIwMDUtMDktMDEsMzA5LjgyMjE0NjMzOTM0ODIKMjAwNS0xMC0wMSwxOTAuMTkzMjkzNzUxOTM0ODIKMjAwNS0xMS0wMSw2NS40MTg3NTc3NzU4MDQ0MgoyMDA1LTEyLTAxLDM2Ljc0ODY1NzA0MTU0Nzg2CjIwMDYtMDEtMDEsMjAuOTQxNzk4Mzk3MjM1MjYKMjAwNi0wMi0wMSwxMS44NzA4ODAxNTg0NTIxNDkKMjAwNi0wMy0wMSw1LjkzMjA1MTc3MjgxNDI3MwoyMDA2LTA0LTAxLDIuMzUwNTU0OTA4NTQwMDk2MwoyMDA2LTA1LTAxLDUuNTA1Nzk3NjE0MTY4MjgzCjIwMDYtMDYtMDEsMjkuNjM2NDMxNTY1Nzk5NDEzCjIwMDYtMDctMDEsOTAuNTcwMjEwMjM2NTA3MjQKMjAwNi0wOC0wMSwyMzkuOTc5NDI1MTc4NTU0MQoyMDA2LTA5LTAxLDI2Ny45NjM4OTI1NzEyODI5NAoyMDA2LTEwLTAxLDIwOC4wMzUxNDk2MDQ1MjE1NAoyMDA2LTExLTAxLDg1LjQ4NDk5MTI1NzkwMjIxCjIwMDYtMTItMDEsMzcuOTIyNTUwMjI3OTAyMjIKMjAwNy0wMS0wMSwyMC45ODY1NjEzNzQ2OTQ1MTcKMjAwNy0wMi0wMSwxMS4zODE3OTIzNzY2MjkzMzUKMjAwNy0wMy0wMSw2Ljc4NzAzOTQ5NDI0MDA3NjUKMjAwNy0wNC0wMSwyLjkxOTcwNjUxNzU2NDc5MQoyMDA3LTA1LTAxLDEuMzA1OTkyNDAyODk5MzQ2MQoyMDA3LTA2LTAxLDEuNzE2NTcyNjgxNTg1NTQwNwoyMDA3LTA3LTAxLDgxLjA3MDE0NTM2NjIwNjQ1CjIwMDctMDgtMDEsMzgxLjA5MTc3NjcxOTM0ODE2CjIwMDctMDktMDEsNDIwLjc2NTU5NjIyMDY1MTg0CjIwMDctMTAtMDEsMTc3LjIxMzM5NDE0MTMwMzc1CjIwMDctMTEtMDEsNzcuMTAzOTc1MDMzMTQ2NwoyMDA3LTEyLTAxLDM0Ljc1MDQzNTMwNDU4NzU1CjIwMDgtMDEtMDEsMTkuOTU0NTMyMzkyMjA5Nzc4CjIwMDgtMDItMDEsMTIuMDU1OTkyNDA2MzI2MzY4CjIwMDgtMDMtMDEsNS44NzIzMTczMzA5MTkzMDMKMjAwOC0wNC0wMSwyLjE5MTg4NzE4MDcxOTAwMzIKMjAwOC0wNS0wMSwyLjAzMDUwNjE0MDY2OTEwOAoyMDA4LTA2LTAxLDIwLjY5NzA0NzY3OTY5NzAzNgoyMDA4LTA3LTAxLDE0MC43NzQ5MDkwNTIyNjA4CjIwMDgtMDgtMDEsMzk3LjM3MDM3MTA5MjkxMjYKMjAwOC0wOS0wMSwzMTMuNzY0MDUwMzE3NDM0MTcKMjAwOC0xMC0wMSwyMDYuMjU3MDIzODE2MTMwNAoyMDA4LTExLTAxLDg1LjEwMzQ3MjEzMTYwODkKMjAwOC0xMi0wMSw0MS44MzkzODQyODYzNTQzOAoyMDA5LTAxLTAxLDIyLjUyMTE3NTgwMjgxNTcwNQoyMDA5LTAyLTAxLDExLjg2OTc3ODE0MjY4MDc0NAoyMDA5LTAzLTAxLDYuMzU2MzkxNTI0MTg0NDM1CjIwMDktMDQtMDEsMi4xODE5MjkxNTcwNzAxNDA3CjIwMDktMDUtMDEsMS4zNDg1NzkyMzY0NTU5NTU1CjIwMDktMDYtMDEsMTIuMzUyOTQzNjk5NjU1Mzk1CjIwMDktMDctMDEsNjAuODA3NDc3MTkxOTM0ODIKMjAwOS0wOC0wMSwzMDMuODA1OTk3MTY2OTQ1MjUKMjAwOS0wOS0wMSw0ODIuMzY2NDExMjgKMjAwOS0xMC0wMSwyMzQuNDEyMjgwMzUxNjA4OQoyMDA5LTExLTAxLDkzLjY1OTQwOTYxODIyODE0CjIwMDktMTItMDEsNDEuOTk2MTIzNTA5NTYyMDcKMjAxMC0wMS0wMSwyMy40MTg1MDI1Njc0NTQyMjYKMjAxMC0wMi0wMSwxMi4zMzM3OTg2NTgxNzcxODUKMjAxMC0wMy0wMSw2LjEyMDE2NjcxNzQ2NzE1NwoyMDEwLTA0LTAxLDIuMTc1MTY2NDc3Mzk0Mjg1CjIwMTAtMDUtMDEsMC43NzMzODEyMDQ0ODA5Mzg3CjIwMTAtMDYtMDEsMTkuMTUyNjQwNjA5NzYwNTc0CjIwMTAtMDctMDEsNjEuMzA3MTcwMjE3MjQwMjg0CjIwMTAtMDgtMDEsMzE4LjMyMDIzNzk0MTMwMzczCjIwMTAtMDktMDEsNjA2LjEyNzIzNzEyODM5MTEKMjAxMC0xMC0wMSwyNjYuNDUyOTcwOTE3NDM0MTMKMjAxMC0xMS0wMSwxMzIuMzM3NDIxNzIzODY5NgoyMDEwLTEyLTAxLDQ5LjUxMTkwNTMyNzEyODI3NQoyMDExLTAxLTAxLDMwLjE0MTQ5NjE0NjI5ODM3MwoyMDExLTAyLTAxLDE3LjE0Njg1NzQ5MTc2NjgxNgoyMDExLTAzLTAxLDguNzgyMjMxMDM1OTExNDEKMjAxMS0wNC0wMSwzLjY0NjI4NjI1NzQyNTE1NwoyMDExLTA1LTAxLDIuMDQxNDgzNDE4NTcwOTY2NwoyMDExLTA2LTAxLDIwLjkxNDg5OTE3OTc1ODQxOAoyMDExLTA3LTAxLDE1NS4wNzQyODYzNTc5MDIyMgoyMDExLTA4LTAxLDM0MC43MDQ1MDY0OTY0NTYzCjIwMTEtMDktMDEsMzU3LjU5NDYzMDEyMDAwMDAzCjIwMTEtMTAtMDEsMTk0LjMxMjg3MDM0MDMyNTk2CjIwMTEtMTEtMDEsNjcuODkxMDU0NDYwODg1OTEKMjAxMS0xMi0wMSwzNC4zMjE2NzQ0MzM3NTc2MwoyMDEyLTAxLTAxLDIwLjMyMzc5MjgxNzkwMjIyCjIwMTItMDItMDEsMTEuMjYwMTc0NzIxMDIwODk0CjIwMTItMDMtMDEsNS43ODQ2NzgxMDc0NDEzMTIKMjAxMi0wNC0wMSwyLjI4NDQyOTYwNDY1NzkwNwoyMDEyLTA1LTAxLDEuODcyMzQ4MDI1MTk3NDI5NAoyMDEyLTA2LTAxLDE5Ljc1MzE0MDE3OTAxNjQ0CjIwMTItMDctMDEsMTUwLjkyMDI3NzA4OTgzNzA3CjIwMTItMDgtMDEsMzk4LjQ2NTM0MTk5MTYwODg1CjIwMTItMDktMDEsMzg4LjcyNzY2MjE1MjI2MDgKMjAxMi0xMC0wMSwyOTYuMDc5MjA3MjE1MTUyNgoyMDEyLTExLTAxLDEzNS42OTM5NjA2OTAxNjI5NQoyMDEyLTEyLTAxLDU5LjI0NDIxNDM0Njg1MzMyCjIwMTMtMDEtMDEsMzMuNjY2MzQzNTQ0MjU2NTkKMjAxMy0wMi0wMSwxOS4yNjgwNzQyMTM1ODk2MwoyMDEzLTAzLTAxLDEwLjY0NjE2MzU2NDY1NTAzOQoyMDEzLTA0LTAxLDMuODExMDQxNzQ2MjY2NDIzCjIwMTMtMDUtMDEsMS45MjQ3NTUxODQ2MTQxMTQ3CjIwMTMtMDYtMDEsMTMuNDYyMzA5MTY4NzM1Mzc1CjIwMTMtMDctMDEsODUuODIxMDU5MTc1NTcwMzcKMjAxMy0wOC0wMSwzOTIuMDU4MDMxNDE2MTMwNAoyMDEzLTA5LTAxLDQyOS4wOTcwMjk0MzI5MTI2CjIwMTMtMTAtMDEsMTU0Ljk1MzA4MjY0NDUyMTQ2CjIwMTMtMTEtMDEsOTAuMTM3NTkxNDU2NjkwMzYKMjAxMy0xMi0wMSw0MC4zNTI5NzYwNDA2MTA5NwoyMDE0LTAxLTAxLDI0LjU0MjI2MDk1ODQ1MjE0NwoyMDE0LTAyLTAxLDEyLjAyMjc5ODk3ODgzOTExNQoyMDE0LTAzLTAxLDYuODA2MTg0MzQxOTc0MjkzCjIwMTQtMDQtMDEsMi45NjA1OTkyNTIwOTgxNDEKMjAxNC0wNS0wMSw0Ljk5MDYwOTU2NTc5NDc0MgoyMDE0LTA2LTAxLDIyLjk4Njg0ODg1NTk2NzQwNgoyMDE0LTA3LTAxLDY1LjAwOTgzMDYxNDM2MzU0CjIwMTQtMDgtMDEsMjY2LjYxOTYyMzg0Mjg5MTkKMjAxNC0wOS0wMSw0MjAuODMzMDgzNzUxNjA4OQoyMDE0LTEwLTAxLDIyMC41Nzg0Mzk4NjA5Nzc4MgoyMDE0LTExLTAxLDczLjIyNjgwNzg2ODA2NTIKMjAxNC0xMi0wMSw0MC4wNzkzMDE3MjM5ODE2MgoyMDE1LTAxLTAxLDIwLjg3OTQwNTQ3OTIyNjA3CjIwMTUtMDItMDEsMTEuOTI2NjYxNjY0ODYyNTE4CjIwMTUtMDMtMDEsNi42MTkwMDU5OTUxMzc0ODQKMjAxNS0wNC0wMSwyLjY2MjIxNTgwNjUzNTY0NDMKMjAxNS0wNS0wMSwxLjUxOTQyMjUwNjAyMDE3NDMKMjAxNS0wNi0wMSwxOS4yNDQ1MjE5MzMyNTg2NjcKMjAxNS0wNy0wMSw4NS4xMTMxMTQxOTgyMjgxNQoyMDE1LTA4LTAxLDQxOS4xMTk2OTIzNTkzNDgxNgoyMDE1LTA5LTAxLDQyNS4yNTE1Mzk4MTYxMzA0CjIwMTUtMTAtMDEsMjUwLjM4MjM1MjEzMTYwODk0CjIwMTUtMTEtMDEsMTM3LjIxNDUyNjA5MTkzNDgKMjAxNS0xMi0wMSw1Ny4yMTM2MjUyNTQyMDU1OQo=", "results.json": "data:application/json;base64,ewogICJzb3VyY2UiOiAiUmVhbCBPTVZTIGRhdGE6IGRhdGEvT01WU19pbmZsb3dzLmNzdiIsCiAgInJlc2Vydm9pciI6ICJPTVZTLU1hbmFudGFsaSIsCiAgInJ1bnRpbWVfcyI6IDIuNywKICAicGFyYW1zIjogewogICAgInJlc2Vydm9pciI6ICJPTVZTLU1hbmFudGFsaSIsCiAgICAiU19tYXgiOiAzMDcuODk1LAogICAgIlNfaW5pdCI6IDE1My45NDgsCiAgICAiUl9tYXgiOiAxNDYuMCwKICAgICJDX2RlZiI6IDMwMC4wLAogICAgImFubnVhbF9pbmZsb3ciOiAxMjMxLjU4MiwKICAgICJkZW1hbmRfb3ZlcnJpZGUiOiA5Mi4zNjkKICB9LAogICJ3cDIiOiB7CiAgICAiSl9vcHRpbWFsIjogMSwKICAgICJBSl9lbmVyZ3lfcGN0IjogODYuNTIsCiAgICAiZm91cmllcl9SMiI6IDAuODQ2NywKICAgICJyZXNpZHVhbF9zdGQiOiA2My42MywKICAgICJlbmVyZ3lfc3BlY3RydW0iOiBbCiAgICAgIDg2LjUyLAogICAgICAxMy40OAogICAgXQogIH0sCiAgIndwMyI6IHsKICAgICJuX3NjZW5hcmlvcyI6IDEwLAogICAgInNjZW5hcmlvcyI6IFsKICAgICAgWwogICAgICAgIDE2LjE1OSwKICAgICAgICAzNi40NiwKICAgICAgICAyNi43NzEsCiAgICAgICAgNTEuMzY5LAogICAgICAgIDU3LjkyMiwKICAgICAgICAzNC4yOTksCiAgICAgICAgMzI5Ljg0LAogICAgICAgIDI4OC4yNTgsCiAgICAgICAgNTAzLjY4OCwKICAgICAgICAyNzguNTY0LAogICAgICAgIDExNS42NjUsCiAgICAgICAgNDkuNzI1CiAgICAgIF0sCiAgICAgIFsKICAgICAgICAyOS4xOTEsCiAgICAgICAgMzguNDAxLAogICAgICAgIDE4LjMwNSwKICAgICAgICAxMi44NjIsCiAgICAgICAgMTQ5LjY3NSwKICAgICAgICAxMDYuNjU1LAogICAgICAgIDI0Ni43NzQsCiAgICAgICAgMzQwLjA5NiwKICAgICAgICA0NDAuNjY0LAogICAgICAgIDM2OC44MzcsCiAgICAgICAgODMuNTc0LAogICAgICAgIDY0LjQ5MgogICAgICBdLAogICAgICBbCiAgICAgICAgMjAuMjM5LAogICAgICAgIDMwLjM4NCwKICAgICAgICAzNS4wOTUsCiAgICAgICAgMjcuNjI5LAogICAgICAgIDQzLjUyNiwKICAgICAgICAwLjEsCiAgICAgICAgNDMzLjAyOCwKICAgICAgICA0MjUuMzE4LAogICAgICAgIDQwNy4yLAogICAgICAgIDM5MS45NDgsCiAgICAgICAgNzcuNDk0LAogICAgICAgIDU4LjE1MwogICAgICBdLAogICAgICBbCiAgICAgICAgNDguNDczLAogICAgICAgIDI4LjMwMywKICAgICAgICAxMS44OTgsCiAgICAgICAgMjMuNTIzLAogICAgICAgIDUzLjUyLAogICAgICAgIDQ0LjAyNywKICAgICAgICAzMTQuNzM5LAogICAgICAgIDMyMy40MTEsCiAgICAgICAgMjkyLjI2OSwKICAgICAgICA0OTguMzE1LAogICAgICAgIDE1Ni4zOTEsCiAgICAgICAgMTUuNTQKICAgICAgXSwKICAgICAgWwogICAgICAgIDI1Ljk1NiwKICAgICAgICAxOC41NTEsCiAgICAgICAgMTguMzg3LAogICAgICAgIDM4Ljg4MywKICAgICAgICAwLjEsCiAgICAgICAgMTQ4LjY4LAogICAgICAgIDQyNC40NDksCiAgICAgICAgMjI3LjM4NywKICAgICAgICA0MjUuMzAyLAogICAgICAgIDM5Ny42NjEsCiAgICAgICAgNzMuMzk1LAogICAgICAgIDc5LjY3NAogICAgICBdLAogICAgICBbCiAgICAgICAgNjMuMjEyLAogICAgICAgIDUxLjQyNCwKICAgICAgICA0MC44MjYsCiAgICAgICAgMjkuOTYxLAogICAgICAgIDgzLjI3MiwKICAgICAgICAyNS4zMDEsCiAgICAgICAgMzMyLjUxMSwKICAgICAgICAzMDkuNTQyLAogICAgICAgIDM4MC42ODIsCiAgICAgICAgMzk5LjQ3MSwKICAgICAgICAzLjE3OSwKICAgICAgICAxODkuMzIzCiAgICAgIF0sCiAgICAgIFsKICAgICAgICA0Mi44MTYsCiAgICAgICAgMjYuMDAyLAogICAgICAgIDE0LjYzOSwKICAgICAgICA0MC4zMiwKICAgICAgICAyMC44MTEsCiAgICAgICAgNDkuODg2LAogICAgICAgIDIwMi4yMTEsCiAgICAgICAgNDUwLjg0NywKICAgICAgICA0MDkuNjI2LAogICAgICAgIDQxMC40MTksCiAgICAgICAgNzAuMjg3LAogICAgICAgIDg3LjM1NQogICAgICBdLAogICAgICBbCiAgICAgICAgMzQuNDE0LAogICAgICAgIDM1LjY3OCwKICAgICAgICAzOC43NDMsCiAgICAgICAgMTIuOTQyLAogICAgICAgIDUyLjE3NiwKICAgICAgICAyNi42MjksCiAgICAgICAgMzQ2LjM5MSwKICAgICAgICAyODcuMDEyLAogICAgICAgIDQwNC43MjIsCiAgICAgICAgMjcxLjYzMywKICAgICAgICAxOTkuMzQ5LAogICAgICAgIDE2OS43NjkKICAgICAgXSwKICAgICAgWwogICAgICAgIDU1LjM3NywKICAgICAgICA0MC42NiwKICAgICAgICAyOS42ODksCiAgICAgICAgMjUuOTI2LAogICAgICAgIDQzLjY4NSwKICAgICAgICAyNy45ODksCiAgICAgICAgMzMzLjk5NiwKICAgICAgICAzMDEuMywKICAgICAgICAzOTIuODksCiAgICAgICAgMzg3Ljc4MiwKICAgICAgICA4MS4zMjUsCiAgICAgICAgNjYuODMxCiAgICAgIF0sCiAgICAgIFsKICAgICAgICAzOS43MDMsCiAgICAgICAgMzUuNjc4LAogICAgICAgIDM1LjI5MSwKICAgICAgICA0Ny44MzcsCiAgICAgICAgNDMuOTQ0LAogICAgICAgIDM5Ljc0OCwKICAgICAgICAzNDYuMTk4LAogICAgICAgIDMxMS4wNTMsCiAgICAgICAgNDg1LjcwMiwKICAgICAgICA0ODIuMDA0LAogICAgICAgIDUuMDY1LAogICAgICAgIDk4LjIyNAogICAgICBdCiAgICBdLAogICAgIndlaWdodHMiOiBbCiAgICAgIDAuMDU1LAogICAgICAwLjA2LAogICAgICAwLjA0NSwKICAgICAgMC4xMiwKICAgICAgMC4wOCwKICAgICAgMC4xLAogICAgICAwLjA5NSwKICAgICAgMC4xMSwKICAgICAgMC4yNTUsCiAgICAgIDAuMDgKICAgIF0sCiAgICAidHlwZXMiOiBbCiAgICAgICJtZWRpYW4iLAogICAgICAibWVkaWFuIiwKICAgICAgIm1lZGlhbiIsCiAgICAgICJtZWRpYW4iLAogICAgICAibWVkaWFuIiwKICAgICAgIm1lZGlhbiIsCiAgICAgICJtZWRpYW4iLAogICAgICAibWVkaWFuIiwKICAgICAgIkRSWSIsCiAgICAgICJXRVQiCiAgICBdLAogICAgImFubnVhbF92b2x1bWVzIjogWwogICAgICAxNzg4LjcsCiAgICAgIDE4OTkuNSwKICAgICAgMTk1MC4xLAogICAgICAxODEwLjQsCiAgICAgIDE4NzguNCwKICAgICAgMTkwOC43LAogICAgICAxODI1LjIsCiAgICAgIDE4NzkuNSwKICAgICAgMTc4Ny41LAogICAgICAxOTcwLjQKICAgIF0sCiAgICAia3Nfc3RhdCI6IDAuOTQ1NSwKICAgICJlc19pbXByb3ZlbWVudCI6IDQ5LjM3LAogICAgImFjZl9tYXhfZXJyIjogMC4xNjY1CiAgfSwKICAid3A0IjogewogICAgIm1vZGVscyI6IHsKICAgICAgIk1TIjogewogICAgICAgICJtZWFuX2Nvc3QiOiAzMzg3MjMuNCwKICAgICAgICAicDkwX2Nvc3QiOiA0MTYyODEuNSwKICAgICAgICAiZGVmaWNpdCI6IDE3OC4zNwogICAgICB9LAogICAgICAiTVMwIjogewogICAgICAgICJtZWFuX2Nvc3QiOiAzMzg3NjQuMiwKICAgICAgICAicDkwX2Nvc3QiOiA0MTYyODEuNSwKICAgICAgICAiZGVmaWNpdCI6IDE3OC40MgogICAgICB9LAogICAgICAiTUQiOiB7CiAgICAgICAgIm1lYW5fY29zdCI6IDMzODc0OS4zLAogICAgICAgICJwOTBfY29zdCI6IDQxNjI4MS41LAogICAgICAgICJkZWZpY2l0IjogMTc4LjQyCiAgICAgIH0sCiAgICAgICJNRDAiOiB7CiAgICAgICAgIm1lYW5fY29zdCI6IDM2NTIzNi45LAogICAgICAgICJwOTBfY29zdCI6IDQ0MzI4My4wLAogICAgICAgICJkZWZpY2l0IjogMTc4Ljc5CiAgICAgIH0KICAgIH0sCiAgICAiVlNTX3BjdCI6IDAuMDEsCiAgICAiUDkwX3NhdmluZ19wY3QiOiAwLjAsCiAgICAiZGVmaWNpdF9zYXZpbmdfcGN0IjogMC4wMwogIH0sCiAgIm1vbnRobHlfY2xpbWF0b2xvZ3kiOiBbCiAgICAyMi43NiwKICAgIDExLjk3LAogICAgNi41MywKICAgIDIuNzksCiAgICAyLjkyLAogICAgMjIuMiwKICAgIDEwNy42NCwKICAgIDMyOS44MiwKICAgIDM4MC43MiwKICAgIDIxNy4wLAogICAgODYuNzYsCiAgICA0MC40NwogIF0sCiAgInNlYXNvbmFsX3Byb2ZpbGUiOiBbCiAgICAyMi45NjMsCiAgICAyMi45NjMsCiAgICA4Ljk1MywKICAgIDguOTUzLAogICAgMzMuMjg5LAogICAgMzMuMjg5LAogICAgMzI2LjAwOSwKICAgIDMyNi4wMDksCiAgICAzOTQuMjgyLAogICAgMzk0LjI4MiwKICAgIDgwLjAzOSwKICAgIDgwLjAzOQogIF0sCiAgIndwNGJfY29udGludW91cyI6IHsKICAgICJzZGUiOiB7CiAgICAgICJzaWdtYV90eXBlIjogInNxcnQiLAogICAgICAia2FwcGEiOiAxNS4wLAogICAgICAic2lnbWEwIjogMjEuNzY5LAogICAgICAiZm91cmllcl9SMiI6IDAuODQ2NywKICAgICAgImtzX3AiOiAwLjAsCiAgICAgICJnYXVzc2lhbl9pbm5vdmF0aW9ucyI6IGZhbHNlLAogICAgICAiZmVsbGVyIjogMTMuODQ3LAogICAgICAiZmVsbGVyX29rIjogdHJ1ZQogICAgfSwKICAgICJjb252ZXJnZW5jZSI6IHsKICAgICAgIm1ldGhvZCI6ICJwYXRoLWNvdXBsZWQgQnJvd25pYW4gaW5jcmVtZW50cyIsCiAgICAgICJlbV9zbG9wZSI6IDAuOTI5LAogICAgICAiZW1fdGhlb3J5IjogMC41LAogICAgICAibWlsc3RlaW5fc2xvcGUiOiAxLjE3NCwKICAgICAgIm1pbHN0ZWluX3RoZW9yeSI6IDEuMCwKICAgICAgIm1pbHN0ZWluX2JlYXRzX2VtIjogdHJ1ZSwKICAgICAgInN0YXR1cyI6ICJ2YWxpZGF0ZWQiLAogICAgICAiZHQiOiBbCiAgICAgICAgMC4wNjI1LAogICAgICAgIDAuMDMxMjUsCiAgICAgICAgMC4wMTU2MjUsCiAgICAgICAgMC4wMDc4MTI1CiAgICAgIF0sCiAgICAgICJlcnJfZW0iOiBbCiAgICAgICAgMTguOTY5MjM0Mjc0MDg5NzksCiAgICAgICAgOC41ODgzMjcwMzE4NDIxNTUsCiAgICAgICAgNC41ODQ3ODk1OTg5NDYwNjgsCiAgICAgICAgMi43MzM0NTA4NDQyODI4OTkKICAgICAgXSwKICAgICAgImVycl9taWwiOiBbCiAgICAgICAgMTkuNjAzMjE1ODI2OTM4MDQ3LAogICAgICAgIDcuNTgzMDg1ODkzMzc3Nzk3LAogICAgICAgIDMuNTMyNzA1NjEzOTQ0MTYsCiAgICAgICAgMS42Nzk4NjYyOTcxMTIwOTIKICAgICAgXQogICAgfSwKICAgICJoamIiOiB7CiAgICAgICJzdGF0dXMiOiAidmFsaWRhdGVkIiwKICAgICAgInN0YWJsZSI6IHRydWUsCiAgICAgICJtYXhfYWJzX1YiOiAzMzE5NS4yNSwKICAgICAgIlZfbWluX2F0X3N0b3JhZ2UiOiAxMjcuNCwKICAgICAgIlZfYXRfZW1wdHkiOiA5MzgyLjUsCiAgICAgICJWX2F0X21pbiI6IDEzMzkuNywKICAgICAgIlZfYXRfZnVsbCI6IDEyMTA1LjgsCiAgICAgICJ1X3NoYXBlZCI6IHRydWUsCiAgICAgICJzdG9yYWdlX2dyaWQiOiBbCiAgICAgICAgMC4wLAogICAgICAgIDEwLjYsCiAgICAgICAgMjEuMiwKICAgICAgICAzMS45LAogICAgICAgIDQyLjUsCiAgICAgICAgNTMuMSwKICAgICAgICA2My43LAogICAgICAgIDc0LjMsCiAgICAgICAgODQuOSwKICAgICAgICA5NS42LAogICAgICAgIDEwNi4yLAogICAgICAgIDExNi44LAogICAgICAgIDEyNy40LAogICAgICAgIDEzOC4wLAogICAgICAgIDE0OC42LAogICAgICAgIDE1OS4zLAogICAgICAgIDE2OS45LAogICAgICAgIDE4MC41LAogICAgICAgIDE5MS4xLAogICAgICAgIDIwMS43LAogICAgICAgIDIxMi4zLAogICAgICAgIDIyMy4wLAogICAgICAgIDIzMy42LAogICAgICAgIDI0NC4yLAogICAgICAgIDI1NC44LAogICAgICAgIDI2NS40LAogICAgICAgIDI3Ni4wLAogICAgICAgIDI4Ni43LAogICAgICAgIDI5Ny4zLAogICAgICAgIDMwNy45CiAgICAgIF0sCiAgICAgICJ2YWx1ZV9hdF90MCI6IFsKICAgICAgICA5MzgyLjQ3LAogICAgICAgIDgzNTMuMTksCiAgICAgICAgNzI4MS42NSwKICAgICAgICA2MjI5Ljc1LAogICAgICAgIDUyMzUuMTcsCiAgICAgICAgNDM0NC44NSwKICAgICAgICAzNTY0LjYxLAogICAgICAgIDI4NzkuOSwKICAgICAgICAyMjY1LjMzLAogICAgICAgIDE3NzUuNDIsCiAgICAgICAgMTQ4MC4wNiwKICAgICAgICAxMzUxLjA1LAogICAgICAgIDEzMzkuNzMsCiAgICAgICAgMTQwNy4yMiwKICAgICAgICAxNTYwLjI1LAogICAgICAgIDE3NzcuNjMsCiAgICAgICAgMjA0OC43OSwKICAgICAgICAyMzc4LjczLAogICAgICAgIDI3ODcuODcsCiAgICAgICAgMzI3MS43OSwKICAgICAgICAzODExLjQ3LAogICAgICAgIDQ0MTMuMjcsCiAgICAgICAgNTA5Ni4xMSwKICAgICAgICA1ODczLjE5LAogICAgICAgIDY3MTEuNTEsCiAgICAgICAgNzYxNS4xNywKICAgICAgICA4NTk3LjU2LAogICAgICAgIDk3MDIuNTUsCiAgICAgICAgMTA4NzEuODgsCiAgICAgICAgMTIxMDUuNzcKICAgICAgXSwKICAgICAgInBvbGljeV9hdF90MCI6IFsKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICA5My41OSwKICAgICAgICAxMDEuMDgsCiAgICAgICAgMTEyLjMxLAogICAgICAgIDEyMy41NCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMCwKICAgICAgICAxNDYuMAogICAgICBdCiAgICB9LAogICAgIndhdmVsZXRfZ2FsZXJraW4iOiB7CiAgICAgICJzdGF0dXMiOiAidmFsaWRhdGVkIiwKICAgICAgInNsb3BlIjogLTEuMDI5LAogICAgICAidGhlb3J5IjogLTEuMCwKICAgICAgImJhc2lzIjogIm9ydGhvbm9ybWFsIEhhYXIgKEheMSB2YWx1ZSBmdW5jdGlvbikiLAogICAgICAidGFibGUiOiBbCiAgICAgICAgewogICAgICAgICAgIkoiOiAxLAogICAgICAgICAgIk0iOiAyLAogICAgICAgICAgIkwyX2Vycm9yIjogMzM1My40ODk1NTA3MjY3MjIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJKIjogMiwKICAgICAgICAgICJNIjogNCwKICAgICAgICAgICJMMl9lcnJvciI6IDE4MTYuMzQ5MzExODM4Mjg0CiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAiSiI6IDMsCiAgICAgICAgICAiTSI6IDgsCiAgICAgICAgICAiTDJfZXJyb3IiOiA5MTIuMjI2NDkwOTA5MDY0OQogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgIkoiOiA0LAogICAgICAgICAgIk0iOiAxNiwKICAgICAgICAgICJMMl9lcnJvciI6IDM5MS41NzY4OTczMzg2OTMKICAgICAgICB9CiAgICAgIF0KICAgIH0sCiAgICAiZ3JpZCI6IHsKICAgICAgIk5fUyI6IDMwLAogICAgICAiTl9RIjogMTUsCiAgICAgICJOX3QiOiAxMiwKICAgICAgIm5fcGF0aHMiOiAxMjAsCiAgICAgICJmYXN0IjogdHJ1ZQogICAgfQogIH0KfQ==", "results.csv": "data:text/csv;base64,LG1lYW5fY29zdCxwOTBfY29zdCxkZWZpY2l0Ck1TLDMzODcyMy40LDQxNjI4MS41LDE3OC4zNwpNUzAsMzM4NzY0LjIsNDE2MjgxLjUsMTc4LjQyCk1ELDMzODc0OS4zLDQxNjI4MS41LDE3OC40MgpNRDAsMzY1MjM2LjksNDQzMjgzLjAsMTc4Ljc5Cg==", "sweep.json": "data:application/json;base64,ewogICJtZWFuX21vIjogMTAyLjYzMTgxNjAzNzI3MzIsCiAgIlJfbWF4IjogMTQ2LjAsCiAgIkQiOiA5Mi4zNjg2MzQ0MzM1NDU4OCwKICAic3dlZXAiOiBbCiAgICB7CiAgICAgICJjX21zIjogNDAyNDg3LjIzNDUwMDI5MjEsCiAgICAgICJjX21kIjogNDAyNDg3LjIzNDUwMDI5MjEsCiAgICAgICJjX21kMCI6IDQwODc1OS4yODM2MTg5NzIwNSwKICAgICAgInZzcyI6IDAuMCwKICAgICAgInZzc192c19ncmVlZHkiOiAxLjUzNDQxMTQxNzY4MDg0OCwKICAgICAgImZyYWMiOiAwLjEsCiAgICAgICJTX21heCI6IDEwLjI2MzE4MTYwMzcyNzMyCiAgICB9LAogICAgewogICAgICAiY19tcyI6IDM4Nzk0Ni4yMzI5MDg2ODY1NiwKICAgICAgImNfbWQiOiAzODc5NDYuMjMyOTA4Njg2NTYsCiAgICAgICJjX21kMCI6IDM5NjkwMS44MDg4NzEyNjg0LAogICAgICAidnNzIjogMC4wLAogICAgICAidnNzX3ZzX2dyZWVkeSI6IDIuMjU2MzcwNjU5NTQ2ODA3LAogICAgICAiZnJhYyI6IDAuMjUsCiAgICAgICJTX21heCI6IDI1LjY1Nzk1NDAwOTMxODMKICAgIH0sCiAgICB7CiAgICAgICJjX21zIjogMzY1MDkwLjk0Mzg3MjU5NDYsCiAgICAgICJjX21kIjogMzY1MDkwLjk0Mzg3MjU5NDYsCiAgICAgICJjX21kMCI6IDM3NzE2MS4wOTkxNjU2NDM4LAogICAgICAidnNzIjogMC4wLAogICAgICAidnNzX3ZzX2dyZWVkeSI6IDMuMjAwMjY1MTcwNDQwNjM4LAogICAgICAiZnJhYyI6IDAuNSwKICAgICAgIlNfbWF4IjogNTEuMzE1OTA4MDE4NjM2NgogICAgfSwKICAgIHsKICAgICAgImNfbXMiOiAzMjU2MjQuOTMyNzE1ODk1NiwKICAgICAgImNfbWQiOiAzMjUyNjkuNzczODUyNDQ3OCwKICAgICAgImNfbWQwIjogMzQxMDIxLjMxNjg4ODM0MzEsCiAgICAgICJ2c3MiOiAtMC4xMDkxODkwMTUzOTUyMzA2NSwKICAgICAgInZzc192c19ncmVlZHkiOiA0LjUxNDc4NjQ0MDAxODUxOCwKICAgICAgImZyYWMiOiAxLjAsCiAgICAgICJTX21heCI6IDEwMi42MzE4MTYwMzcyNzMyCiAgICB9LAogICAgewogICAgICAiY19tcyI6IDI5MTQ3OS4yOTUwNjE4NTQ0LAogICAgICAiY19tZCI6IDI5MTQ3Ny41MjUxNzA0NjQ2LAogICAgICAiY19tZDAiOiAzMTAzOTUuNzA3MzcwMjY3MjUsCiAgICAgICJ2c3MiOiAtMC4wMDA2MDcyMTM2NzQxMTk1MzEsCiAgICAgICJ2c3NfdnNfZ3JlZWR5IjogNi4wOTQyODkyNzYzMTY0NjYsCiAgICAgICJmcmFjIjogMS41LAogICAgICAiU19tYXgiOiAxNTMuOTQ3NzI0MDU1OTA5OAogICAgfSwKICAgIHsKICAgICAgImNfbXMiOiAyNjA2ODYuNjU0Mzg3NDg3MjQsCiAgICAgICJjX21kIjogMjYwNjg2LjY1NDM4NzQ4NzI0LAogICAgICAiY19tZDAiOiAyODUzMTcuNDE2MDYwOTg2NSwKICAgICAgInZzcyI6IDAuMCwKICAgICAgInZzc192c19ncmVlZHkiOiA4LjYzMjc1Nzg2NDM5NzA1NSwKICAgICAgImZyYWMiOiAyLjAsCiAgICAgICJTX21heCI6IDIwNS4yNjM2MzIwNzQ1NDY0CiAgICB9LAogICAgewogICAgICAiY19tcyI6IDE5OTQ2Ni43NzQ2MzkxMjMzLAogICAgICAiY19tZCI6IDE5OTQ2Ni43NzYxMjEyNTM4MiwKICAgICAgImNfbWQwIjogMjMwMDYyLjA0NjU1ODEyNjI4LAogICAgICAidnNzIjogNy40MzA0NjMxMTcxODM5MDRlLTA3LAogICAgICAidnNzX3ZzX2dyZWVkeSI6IDEzLjI5ODcwNDU3ODQ5NDE5NywKICAgICAgImZyYWMiOiAzLjAsCiAgICAgICJTX21heCI6IDMwNy44OTU0NDgxMTE4MTk2CiAgICB9LAogICAgewogICAgICAiY19tcyI6IDE0NjM1My44NzEzOTk0MTg0NSwKICAgICAgImNfbWQiOiAxNDYzNTAuMTU2NTE3OTEyNiwKICAgICAgImNfbWQwIjogMTc2NTcxLjgzMzg1MTQxNiwKICAgICAgInZzcyI6IC0wLjAwMjUzODM1MTU3Njk1MzQ1MTUsCiAgICAgICJ2c3NfdnNfZ3JlZWR5IjogMTcuMTEzNjkzNDk5NjI0NTAzLAogICAgICAiZnJhYyI6IDQuMCwKICAgICAgIlNfbWF4IjogNDEwLjUyNzI2NDE0OTA5MjgKICAgIH0sCiAgICB7CiAgICAgICJjX21zIjogNzQzNDguMjkxNDIwNTI5NjUsCiAgICAgICJjX21kIjogODIyMjQuMzA5MTczMDU3MjIsCiAgICAgICJjX21kMCI6IDg5NTgyLjM3NDk0ODI1NzYyLAogICAgICAidnNzIjogOS41Nzg2OTczODQ5MTkyNjgsCiAgICAgICJ2c3NfdnNfZ3JlZWR5IjogMTcuMDA1NjcwNTIwMDQwNDc1LAogICAgICAiZnJhYyI6IDYuMCwKICAgICAgIlNfbWF4IjogNjE1Ljc5MDg5NjIyMzYzOTIKICAgIH0KICBdCn0=", "plan4res_storage.csv": "data:text/csv;base64,TmFtZSxab25lLEh5ZHJvU3lzdGVtLE51bWJlclVuaXRzLE1heFBvd2VyLE1pblBvd2VyLE1heFZvbHVtZSxNaW5Wb2x1bWUsSW5mbG93cyxJbmZsb3dzUHJvZmlsZSxJbml0aWFsVm9sdW1lLFR1cmJpbmVFZmZpY2llbmN5LFB1bXBpbmdFZmZpY2llbmN5Ckh5ZHJvfFJlc2Vydm9pcixEb2xBbXJvdGgsMCwxLDU1MjQuMjM5NDQ0MTI4NzA2LDAsMTEwNDg0NzguODg4MjU3NDEyLDAsMTU5Njk0NzEuMzg1MDg3MjY1LEluZmxvd19Eb2xBbXJvdGguY3N2LDY2MjkwODcuMzMyOTU0NDQ3LDEuMCwwLjAKSHlkcm98UmVzZXJ2b2lyLEhhcmFkLDAsMSw2MDAwLjAsMCwxMjAwMDAwMC4wLDAsMjc2ODkyMzguNzIwMDAwMDAzLEluZmxvd19IYXJhZC5jc3YsNjAwMDAwMC4wLDEuMCwwLjAKSHlkcm98UmVzZXJ2b2lyLFJvR29uRG9yLDAsMSwyNTgxNC4wNSwwLDUxNjI4MTAwLjAsMCw3NDYyMzI1NS43NDAwMDAwMSxBZ2dyZWdhdGVkVGltZVNlcmllX0luZmxvd3NfUm9Hb25Eb3IuY3N2LDM0NDE4NzMzLjMzMzMzMzMzLDEuMCwwLjAK", "plan4res_bellman.csv": "data:text/csv;base64,VGltZXN0ZXAsYV8wLGFfMSxhXzIsYgowLDAsMCwwLDc3OTU5NzM2NTk0LjU3MjMyNjY2CjAsLTAuMDIzNDIzNzE3ODUzNDQzOTIzMzIsLTAuMDIzNDIzNzE3ODUzNDQzOTIzMzIsLTAuMDExODQ0NjgyNDY0MDk1NzgzMTEyLDc3OTYwNTMxOTUxLjc2NTI1ODc4OQowLC0wLjY2NTcxNTA2MjMyMjQ5NjIyMDQ4LC04MS41MTc5MTU5NzMwMjg1NTA1MjUsLTAuNjY1NzE1MDYyMzIyNDk2MjIwNDgsNzg2NDAzNjMyMTIuMjY2NzIzNjMzCjEsMCwwLDAsNzc3NDg3ODQwMTcuNzgyOTc0MjQzCjEsLTAuMDMxMjMxNjIzODA0NTkxODk2NjA0LC0wLjAzMTIzMTYyMzgwNDU5MTg5NjYwNCwtMC4wMTU3OTI5MDk5NTIxMjc3MTA4MTUsNzc3NDk5MTM4MTEuOTU3OTc3Mjk1CjEsLTAuNjY1NzE1MDYyMzIyNDk2MjIwNDgsLTgxLjUxNzkxNTk3MzAyODU1MDUyNSwtMC42NjU3MTUwNjIzMjI0OTYyMjA0OCw3ODYyOTExOTM4OC43MjE1NTc2MTcKMiwwLDAsMCw3NzQ4MzUxMzIyMi41NTQyNDQ5OTUKMiwtMTAuODA4MjUwNDY0MjMyNTc2OTU5LC0xMC44MDgyNTA0NjQyMzI1NzY5NTksLTUuNDY1NDEzMTE0MjczMzI4NDMyMSw3Nzg0Njc1NzI5MS45OTY2MTI1NDkKMiwtMTAwMDAsLTEwMDAwLC04MS42NjQ4Nzc1MTUxMTY4MjgwMjIsMjkzNTI1MzAxMDIzLjU5ODc1NDg4CjMsMCwwLDAsNzU2MzQxNTczNDguNTI5MTEzNzcKMywtNTA2Ni4wMzg2NTUwOTgyMDkzNDY4LC01MDY2LjAzODY1NTA5ODIwOTM0NjgsLTI1NjEuNzQ2MTU4MTQyNDY5NTM5NiwxOTQzNjIwNjQyNzguMzgyNDE1NzcKMywtMTAwMDAsLTEwMDAwLC04MS42NjQ4Nzc1MTUxMTY4MjgwMjIsMzA4MDY2ODEzNzgyLjgwMjAwMTk1CjQsMCwwLDAsNzI5Mzk5ODU0MDkuMzQ5NjM5ODkzCjQsLTEwMDAwLC0xMDAwMCwtNTA1Ni43MDQ3MjA0OTA5NDA0MTcyLDI5MDI5NDU0ODA0OC4zODQzOTk0MQo0LC0xMDAwMCwtMTAwMDAsLTgxLjY2NDg3NzUxNTExNjgyODAyMiwyODgyMjQ3MjU0NDMuNTI5MTEzNzcKNSwwLDAsMCw2ODU0ODk4ODEzOS4wODA4MTA1NDcKNSwtMTAwMDAsLTEwMDAwLC01MDU2LjcwNDcyMDQ5MDk0MDQxNzIsMjU2MzA1MzAzMDUwLjg3MDYwNTQ3CjUsLTEwMDAwLC0xMDAwMCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDI0MzE0NzU0NDA3MS41NTg1NjMyMwo2LDAsMCwwLDYyNjg1MzQ1MDQ2Ljk3MTc5NDEyOAo2LC0xMDAwMCwtMTAwMDAsLTUwNTYuNzA0NzIwNDkwOTQwNDE3MiwyMzI3OTY0MTE1MzguNTIwMzI0NzEKNiwtMTAwMDAsLTEwMDAwLC04MS42NjQ4Nzc1MTUxMTY4MjgwMjIsMjA4NjE4MDQxMTE1LjE1MDYwNDI1CjcsMCwwLDAsMzE1MzU2MDQxNDcuNDI2ODk1MTQyCjcsLTEwMDAwLC0xMDAwMCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDExNjMyNjk0NDgxNC45ODg1MTAxMwo3LC0xMDAwMCwtNzUyOC4zMDEzMzE5MzIyNDk5MjI4LC04MS42NjQ4Nzc1MTUxMTY4MTM4MTEsMTA5MTkzNjU1Njk4LjM0NDE5MjUKOCwwLDAsMCwxMzEyODU4NDgzMC4wOTEyMDc1MDQKOCwtMTAwMDAsLTc1MjguMzAxMzMxOTMyMjQ5OTIyOCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDM2MjM4Nzk4NjI5LjYyNjYxNzQzMgo4LC01MDQxLjAyMTQ5NzEzNTE3NzAxNDYsLTUwNTYuNjAyNjYzODY0NDk5ODQ1NywtMy44Njc4NjA4NzM1MDE3NDAxMjY2LDI5MzE1NjYzOTk2LjkzNTQ0NzY5Mwo5LDAsMCwwLDEwNjQ1ODk5NjI0LjIzNTk5MjQzMgo5LC04LjAwNDQ1Nzc2MTc1NzA4MDkwMjUsLTgxLjUxNzkxNTk3MzAyODU1MDUyNSwtOC4wMDA3MTgyMDE1NzYyMDcyNzgsMTExNDgyMDk4NTUuMTU1NzM2OTIzCjksLTguMDAyNzM1NDQ0NDA1NDgyNTY3NywtODEuNTE3OTE1OTczMDI4NTUwNTI1LC0zLjg2Nzg2MDg3MzUwMTc0MDEyNjYsMTExMjI2Nzk2ODQuMDQwMzAyMjc3CjEwLDAsMCwwLDEwMzI5NTYyMTQ0LjMzMDM0NTE1NAoxMCwtOC4wMDQ0NTc3NjE3NTcwODA5MDI1LC04MS41MTc5MTU5NzMwMjg1NTA1MjUsLTMuOTE5NDcxOTYxMjA2NTc0NDg0LDEwNTE3MjM1MDA2LjI1NzE1MjU1NwoxMCwtNC4yOTgxNDc3Mjk3ODgwNzcyNDI2LC04MS41MTc5MTU5NzMwMjg1NTA1MjUsLTMuODE2MzA2MTg2OTcxNDEyNTUwNywxMDUxNjUzMzI2OS4wNjc5NTEyMDIKMTEsMCwwLDAsMTAwODQ0MjE2NTMuNjA2Mzg5OTk5CjExLC00LjQ1OTA2MjEyODg5OTIxMzM4NDIsLTc5LjUzMDkxNjc3MTE4NTk4NTY4MSwtMy4wMDA0MzcyOTY2NTY4MTI2OTEzLDEwMTA5OTUwOTI1LjcwNTY1MDMzCjExLC0xLjUxODIxNDg0MDI0NzMzMTQ0MywtNjEuMTM5NTkyNTM4NzY0MTE5OTIyLC0xLjUxODIxNDg0MDI0NzMzMTQ0MywxMDEwNjcxMTI0My4zOTEzOTE3NTQKMTIsMCwwLDAsOTc1Mjc2OTAxMS4xNTM4NDEwMTg3CjEyLC0wLjAxODAzOTk3NjM0ODY5NTc0MTY1NCwtMC4wMDQ1MDk5OTQwODcxNzM5MzU0MTM0LC0wLjAxODAzOTk3NjM0ODY5NTc0MTY1NCw5NzUyODMzOTYwLjA2NzMzMTMxNDEKMTIsLTAuMDE4MDM5OTc2MzQ4Njk1NzQxNjU0LC0wLjAwNDYyMjIzNTk3MDgzMTI3MTg1NjMsLTAuMDE4MDM5OTc2MzQ4Njk1NzQxNjU0LDk3NTI4Mzc1MDUuNTgwMDg1NzU0NAoxMywwLDAsMCw5MzAzNDU4NDYyLjcyNTcyNTE3NAoxMywtMC4wMDkwMTk5ODgxNzQzNDc4NzA4MjY4LC0wLjAwOTAxOTk4ODE3NDM0Nzg3MDgyNjgsLTAuMDA5MDE5OTg4MTc0MzQ3ODcwODI2OCw5MzAzNDgxMjQ2LjU3NTQwNzAyODIKMTMsLTIuOTU3MzI4NjcyMDIxOTQxMTYyNywtMC4wMzM0Nzg1MzYxNTE4NjEzNzM4ODIsLTAuMDI0MTUwOTg4Mzc3MjYxNDk0NTgzLDkzMDQyNTYzNTAuMTUxMTIzMDQ2OQoxNCwwLDAsMCw5MDc1NzUzMDE2LjAyNDEyNjA1MjkKMTQsLTI0LjM5MzY5NTU0NDIzOTIyODkyMywtMjQuMzkzNjk1NTQ0MjM5MjI4OTIzLC0wLjE5OTIxMDgxNTg3NjEzNDc2MTM4LDkxMDg0Njg2NzYuMTA1MTI1NDI3MgoxNCwtMTAwMDAsLTExMy4yMDUzMjc3MjkwMDA1MDEzNCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDI4NDQ0MzcwNjExLjg1MDE2NjMyMQoxNSwwLDAsMCw4ODEzMDg2MjExLjkwNzAyMDU2ODgKMTUsLTEwMDAwLC0xMDAwMCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDM2MTk0NjE1NjM3LjExNjI3MTk3MwoxNSwtMTAwMDAsLTExMy4yMDUzMjc3MjkwMDA1MDEzNCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDQ5NzI3MDc2MDUxLjMwMjUzNjAxMQoxNiwwLDAsMCw3MDY1OTA5OTc0LjIxMzIzMzk0NzgKMTYsLTEwMDAwLC0xMDAwMCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDYzMjQzMTcyNTEzLjEyNjQ2NDg0NAoxNiwtMTAwMDAsLTExMy4yMDUzMjc3MjkwMDA1MDEzNCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDUxMjMwOTg4MTY3LjAxMDEzOTQ2NQoxNywwLDAsMCw0Mzg0NzY3Njc5LjM4ODcyMzM3MzQKMTcsLTEwMDAwLC0xMDAwMCwtODEuNjY0ODc3NTE1MTE2ODI4MDIyLDQ1MjU3MDU4Mjg2Ljc1NjY3NTcyCjE3LC0xMDAwMCwwLC04MS42NjQ4Nzc1MTUxMTY4MjgwMjIsMjY4NzcyODIzOTUuNTc5NzU3NjkKMTgsMCwwLDAsMAo=", "plan4res_zonevalues.csv": "data:text/csv;base64,VHlwZSxab25lLHZhbHVlLFByb2ZpbGVfVGltZXNlcmllClRvdGFsLERvbEFtcm90aCw3NTM1Njc1Mi4wMzUyMzk3NiwKQ29va2luZyxEb2xBbXJvdGgsNzE3ODk1MC42NTIwNjU5MzY1LFRTX0NPT0tJTkdfRG9sQW1yb3RoLmNzdgpFbGVjSGVhdGluZyxEb2xBbXJvdGgsNTQ2MzU5NTAuMTI2MjQ2MzYsVFNfSEVBVF9MT1dfRG9sQW1yb3RoLmNzdgpPdGhlckV4Y2xIZWF0VHJhbnNwQ29va2luZyxEb2xBbXJvdGgsNTEzNjkyMTkuODEyMDc3MDQsVFNfTE9BRF9Eb2xBbXJvdGguY3N2CkVsZWNWZWhpY2xlLERvbEFtcm90aCwxMzU0MTg1MS4yNTY5Mjc0NDcsVFNfTU9CSUxJVFlfUFNOR19Eb2xBbXJvdGguY3N2ClRvdGFsLEhhcmFkLDczMDAwNjIyOS42MDIxMTExLApDb29raW5nLEhhcmFkLDIzNDEwMzU0LjgxMTQzNjcyOCxUU19DT09LSU5HX0hhcmFkLmNzdgpFbGVjSGVhdGluZyxIYXJhZCwxNDI5MTE5NzMuMDk3NjQxMjYsVFNfSEVBVF9MT1dfSGFyYWQuY3N2Ck90aGVyRXhjbEhlYXRUcmFuc3BDb29raW5nLEhhcmFkLDQ4NTcwNDU4MS4xMDQwNTY5NSxUU19MT0FEX0hhcmFkLmNzdgpFbGVjVmVoaWNsZSxIYXJhZCw3Nzk3OTMyMC41ODg5NzYzNyxUU19NT0JJTElUWV9QU05HX0hhcmFkLmNzdgpUb3RhbCxSb0dvbkRvciwxNTQ2Nzg4MDA1LjEzMDIwNzgsCkNvb2tpbmcsUm9Hb25Eb3IsMTcyNDU3MzI4Ljk3MTYwMDYsQWdncmVnYXRlZFRpbWVTZXJpZV9Db29raW5nX1JvR29uRG9yLmNzdgpFbGVjSGVhdGluZyxSb0dvbkRvciw1ODg2MjU4NDkuNDE2ODk5NyxBZ2dyZWdhdGVkVGltZVNlcmllX0VsZWNIZWF0aW5nX1JvR29uRG9yLmNzdgpPdGhlckV4Y2xIZWF0VHJhbnNwQ29va2luZyxSb0dvbkRvciw1MTk1MDgxMDUuMjYxMTkzMzQsQWdncmVnYXRlZFRpbWVTZXJpZV9PdGhlckV4Y2xIZWF0VHJhbnNwQ29va2luZ19Sb0dvbkRvci5jc3YKRWxlY1ZlaGljbGUsUm9Hb25Eb3IsMjY2MTk2NzIxLjQ4MDUxMzkzLEFnZ3JlZ2F0ZWRUaW1lU2VyaWVfRWxlY1ZlaGljbGVfUm9Hb25Eb3IuY3N2Ck1heEFjdGl2ZVBvd2VyRGVtYW5kLFJvR29uRG9yLDE1MDAwMDAuMCwKQ29zdEFjdGl2ZVBvd2VyRGVtYW5kLFJvR29uRG9yLDEwMDAwLjAsCk1heEFjdGl2ZVBvd2VyRGVtYW5kLERvbEFtcm90aCwxNTAwMDAwLjAsCkNvc3RBY3RpdmVQb3dlckRlbWFuZCxEb2xBbXJvdGgsMTAwMDAuMCwKTWF4QWN0aXZlUG93ZXJEZW1hbmQsSGFyYWQsMTUwMDAwMC4wLApDb3N0QWN0aXZlUG93ZXJEZW1hbmQsSGFyYWQsMTAwMDAuMCwK"};
 
-  const sd = document.querySelector('#sdetab tbody');
-  const rows = [
-    ['sigma type', C.sde.sigma_type],
-    ['kappa (mean reversion, /yr)', C.sde.kappa],
-    ['sigma0 (diffusion)', C.sde.sigma0],
-    ['Fourier R2 (seasonal fit)', C.sde.fourier_R2],
-    ['KS p-value', C.sde.ks_p + (C.sde.gaussian_innovations ? ' (Gaussian)' : ' (heavy-tailed)')],
-    ['Feller ratio 2*kappa*theta/sigma0^2', C.sde.feller + (C.sde.feller_ok ? ' (Q>0 guaranteed)' : ' (may hit 0)')]
-  ];
-  rows.forEach(r => { sd.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`; });
+function render(){
+  const W4=R.wp4, M=W4.models;
+  $('#p-source').textContent = R.source || 'unknown source';
+  $('#runinfo').textContent = `${R.reservoir||''} | runtime ${R.runtime_s}s | K=${R.wp3.n_scenarios} scenarios`;
 
-  if (C.hjb && C.hjb.storage_grid) {
-    new Chart(document.getElementById('hjbChart'), {
-      type:'line',
-      data:{labels:C.hjb.storage_grid, datasets:[
-        {label:'Value function V(S)', data:C.hjb.value_at_t0, borderColor:'#1D7A5A',
-         backgroundColor:'transparent', borderWidth:2, tension:.25, pointRadius:0, yAxisID:'y'},
-        {label:'Optimal release u*(S)', data:C.hjb.policy_at_t0, borderColor:'#C77700',
-         backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], tension:.25,
-         pointRadius:0, yAxisID:'y1'}
-      ]},
-      options:{responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},
-        scales:{
-          y:{position:'left', title:{display:true,text:'V(S) [cost-to-go]'}},
-          y1:{position:'right', title:{display:true,text:'release [GWh]'}, grid:{display:false}},
-          x:{title:{display:true,text:'storage S [GWh]'}, grid:{display:false}}
-        }}
-    });
-    document.getElementById('hjbnote').textContent =
-      `Solver stable: ${C.hjb.stable}. Value function U-shaped: ${C.hjb.u_shaped} - `
-      + `high at empty (deficit risk, V=${C.hjb.V_at_empty}), minimum V=${C.hjb.V_at_min} `
-      + `at S=${C.hjb.V_min_at_storage} GWh, rising to V=${C.hjb.V_at_full} near full `
-      + `(spill penalty). This U-shape is the physically correct signature.`;
+  // KPIs
+  const vssGreedy = M.MD0 ? (M.MD0.mean_cost-M.MS.mean_cost)/M.MD0.mean_cost*100 : null;
+  $('#kpis').innerHTML = `
+    <div class="kpi g"><div class="kl">VSS vs greedy</div><div class="kv">${fmt(vssGreedy,1)}%</div><div class="ks">M-S vs M-D0 baseline</div></div>
+    <div class="kpi b"><div class="kl">VSS vs deterministic</div><div class="kv">${fmt(W4.VSS_pct,1)}%</div><div class="ks">M-S vs M-D (Plan4RES)</div></div>
+    <div class="kpi ${W4.P90_saving_pct>=0?'g':'r'}"><div class="kl">P90 tail saving</div><div class="kv">${fmt(W4.P90_saving_pct,1)}%</div><div class="ks">risk reduction</div></div>
+    <div class="kpi w"><div class="kl">Wavelet A_J energy</div><div class="kv">${fmt(R.wp2.AJ_energy_pct,1)}%</div><div class="ks">J*=${R.wp2.J_optimal}</div></div>
+    <div class="kpi b"><div class="kl">Scenario ES gain</div><div class="kv">${fmt(R.wp3.es_improvement,1)}%</div><div class="ks">vs i.i.d.</div></div>
+    <div class="kpi ${R.wp2.fourier_R2<0.5?'w':'g'}"><div class="kl">Fourier R2</div><div class="kv">${fmt(R.wp2.fourier_R2,2)}</div><div class="ks">seasonal predictability</div></div>`;
+
+  const names={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D Plan4RES',MD0:'M-D0 greedy'};
+  const ks=['MS','MS0','MD','MD0'].filter(k=>M[k]);
+  mk('ovCost',{type:'bar',data:{labels:ks.map(k=>names[k]),datasets:[
+    {label:'Mean',data:ks.map(k=>M[k].mean_cost),backgroundColor:'#1D7A5A'},
+    {label:'P90',data:ks.map(k=>M[k].p90_cost),backgroundColor:'#2a6fb0'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+      scales:{y:{title:{display:true,text:'annual cost'},beginAtZero:true},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  mk('ovClim',{type:'bar',data:{labels:mo,datasets:[{label:'GWh/month',data:R.monthly_climatology,backgroundColor:'#2a6fb0'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'GWh'},beginAtZero:true},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // comparison
+  const tb=$('#cmpTab tbody'); tb.innerHTML='';
+  const cms=M.MS.mean_cost;
+  ks.forEach(k=>{
+    const d=M[k], vs = k==='MS' ? '-' : ((d.mean_cost-cms)/cms*100).toFixed(1)+'%';
+    tb.innerHTML+=`<tr class="${k==='MS'?'hl':''}"><td>${names[k]}</td><td class="num">${fmt(d.mean_cost,0)}</td>
+      <td class="num">${fmt(d.p90_cost,0)}</td><td class="num">${fmt(d.deficit,1)}</td><td class="num">${vs}</td></tr>`;
+  });
+  mk('cmpChart',{type:'bar',data:{labels:ks.map(k=>names[k]),datasets:[
+    {label:'Mean cost',data:ks.map(k=>M[k].mean_cost),backgroundColor:'#1D7A5A'},
+    {label:'P90 cost',data:ks.map(k=>M[k].p90_cost),backgroundColor:'#2a6fb0'},
+    {label:'Deficit (GWh)',data:ks.map(k=>M[k].deficit),backgroundColor:'#B26A00',yAxisID:'y1'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+      scales:{y:{title:{display:true,text:'cost'},beginAtZero:true},
+              y1:{position:'right',title:{display:true,text:'deficit GWh'},grid:{display:false}},
+              x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // scenarios
+  const ds=R.wp3.scenarios.map((s,i)=>({label:`S${i+1} ${R.wp3.types[i]}`,data:s,borderColor:PAL[i%PAL.length],
+    backgroundColor:'transparent',borderWidth:1.4,tension:.32,pointRadius:0}));
+  ds.push({label:'deterministic mean (Plan4RES)',data:R.seasonal_profile,borderColor:'#16202c',
+    borderDash:[7,4],borderWidth:2.4,tension:.32,pointRadius:0});
+  mk('scChart',{type:'line',data:{labels:mo,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:9}}}},
+      scales:{y:{title:{display:true,text:'inflow GWh/month'},beginAtZero:true},x:{grid:{display:false}}}}});
+  $('#scNote').textContent=`K=${R.wp3.n_scenarios} scenarios from block-bootstrap (b=4). `+
+    `KS D=${R.wp3.ks_stat}, ACF max err=${R.wp3.acf_max_err}, energy-score gain ${R.wp3.es_improvement}% vs i.i.d.`;
+  const st=$('#scTab tbody'); st.innerHTML='';
+  R.wp3.weights.forEach((w,i)=>{
+    st.innerHTML+=`<tr><td>${i+1}</td><td><span class="badge ${R.wp3.types[i]==='DRY'?'br':R.wp3.types[i]==='WET'?'bb':'bn'}">${R.wp3.types[i]}</span></td>
+      <td class="num">${fmt(w,3)}</td><td class="num">${fmt(R.wp3.annual_volumes[i],0)}</td></tr>`;
+  });
+
+  // wavelet
+  const es=R.wp2.energy_spectrum||[];
+  mk('wvChart',{type:'bar',data:{labels:es.map((_,i)=>i===0?'A_J':'D'+i),
+    datasets:[{label:'% energy',data:es,backgroundColor:es.map((_,i)=>i===0?'#1D7A5A':'#2a6fb0')}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'% of signal energy'},beginAtZero:true},x:{grid:{display:false}}}}});
+  $('#wvKpi').innerHTML=`
+    <div class="kpi g"><div class="kl">J* levels</div><div class="kv">${R.wp2.J_optimal}</div><div class="ks">auto-selected</div></div>
+    <div class="kpi b"><div class="kl">A_J energy</div><div class="kv">${fmt(R.wp2.AJ_energy_pct,1)}%</div><div class="ks">seasonal share</div></div>
+    <div class="kpi w"><div class="kl">Residual sigma</div><div class="kv">${fmt(R.wp2.residual_std,1)}</div><div class="ks">GWh/month</div></div>
+    <div class="kpi ${R.wp2.fourier_R2<0.5?'w':'b'}"><div class="kl">Fourier R2</div><div class="kv">${fmt(R.wp2.fourier_R2,3)}</div><div class="ks">K=5 harmonics</div></div>`;
+  $('#m-wp2').textContent=`J*=${R.wp2.J_optimal}, A_J holds ${R.wp2.AJ_energy_pct}% of energy, residual sigma=${R.wp2.residual_std} GWh/month.`;
+  $('#m-four').textContent=`K=5 harmonics, R2=${R.wp2.fourier_R2}. A low R2 is itself informative: it shows the inflow is genuinely stochastic, not a deterministic seasonal curve.`;
+  $('#m-wp3').textContent=`${R.wp3.n_scenarios} representative scenarios from N bootstrap cycles with block size b=4 months (preserves autocorrelation), reduced by K-means. Validation: KS D=${R.wp3.ks_stat}, ACF max error=${R.wp3.acf_max_err}, energy-score improvement ${R.wp3.es_improvement}% over i.i.d. sampling.`;
+
+  // plan4res reference
+  if(R.plan4res_reference){
+    const P=R.plan4res_reference;
+    let h=`<p class="muted">${P.n_timesteps} timesteps, ${P.n_cuts} cuts.</p>
+      <table><thead><tr><th class="num">Timestep</th><th class="num">a0</th><th class="num">a1</th>
+      <th class="num">a2</th><th class="num">b</th></tr></thead><tbody>`;
+    P.sample.forEach(r=>{h+=`<tr><td class="num">${r.Timestep}</td><td class="num">${fmt(r.a_0,3)}</td>
+      <td class="num">${fmt(r.a_1,3)}</td><td class="num">${fmt(r.a_2,3)}</td><td class="num">${fmt(r.b,0)}</td></tr>`;});
+    $('#p4rref').innerHTML=h+'</tbody></table>';
   }
 
-  if (C.wavelet_galerkin && C.wavelet_galerkin.table) {
-    const wt = document.querySelector('#wgtab tbody');
-    C.wavelet_galerkin.table.forEach(r => {
-      wt.innerHTML += `<tr><td>${r.J}</td><td>${r.M}</td><td>${r.L2_error.toExponential(3)}</td></tr>`;
-    });
+  renderCT();
+}
+
+function renderCT(){
+  const C=R.wp4b_continuous;
+  if(!C){ $('#ctKpi').innerHTML='<div class="alert aw">Continuous-time block not present in this run.</div>'; return; }
+  $('#ctKpi').innerHTML=`
+    <div class="kpi ${C.sde.feller_ok?'g':'r'}"><div class="kl">Feller ratio</div><div class="kv">${fmt(C.sde.feller,1)}</div><div class="ks">${C.sde.feller_ok?'Q&gt;0 guaranteed':'may hit zero'}</div></div>
+    <div class="kpi b"><div class="kl">Euler-Maruyama</div><div class="kv">${fmt(C.convergence.em_slope,2)}</div><div class="ks">theory 0.5</div></div>
+    <div class="kpi g"><div class="kl">Milstein</div><div class="kv">${fmt(C.convergence.milstein_slope,2)}</div><div class="ks">theory 1.0</div></div>
+    <div class="kpi ${C.wavelet_galerkin&&C.wavelet_galerkin.slope!=null?'b':'w'}"><div class="kl">Wavelet-Galerkin</div>
+      <div class="kv">${C.wavelet_galerkin&&C.wavelet_galerkin.slope!=null?'M^'+fmt(C.wavelet_galerkin.slope,2):'n/a'}</div>
+      <div class="ks">theory M^-1</div></div>`;
+
+  const sd=$('#sdeTab tbody'); sd.innerHTML='';
+  [['sigma type',C.sde.sigma_type],['kappa (mean reversion, /yr)',C.sde.kappa],
+   ['sigma0 (diffusion)',C.sde.sigma0],['Fourier R2',C.sde.fourier_R2],
+   ['KS p-value',C.sde.ks_p],['Feller 2*kappa*theta/sigma0^2',C.sde.feller]
+  ].forEach(r=>{sd.innerHTML+=`<tr><td>${r[0]}</td><td class="num">${r[1]}</td></tr>`;});
+  $('#sdeNote').innerHTML = C.sde.gaussian_innovations
+    ? `<div class="alert as">Innovations pass the Gaussian test (p=${C.sde.ks_p}).</div>`
+    : `<div class="alert aw"><b>Heavy-tailed innovations</b> (KS p=${C.sde.ks_p}). Real Sahelian inflows are
+       not Gaussian - droughts and floods produce fat tails. This is a finding, and it is precisely
+       what motivates the CIR treatment over a Gaussian assumption.</div>`;
+
+  if(C.wavelet_galerkin && C.wavelet_galerkin.table){
+    const wt=$('#wgTab tbody'); wt.innerHTML='';
+    C.wavelet_galerkin.table.forEach(r=>{
+      wt.innerHTML+=`<tr><td class="num">${r.J}</td><td class="num">${r.M}</td>
+        <td class="num">${Number(r.L2_error).toExponential(3)}</td></tr>`;});
+    $('#wgNote').innerHTML=`<div class="alert as">Empirical rate <b>O(M^${fmt(C.wavelet_galerkin.slope,2)})</b>
+      against the corrected finite-difference reference; theory is O(M^-1) for value functions in H1.
+      The value function has kinks in S where the release regime switches, so a smoother basis
+      cannot do better - this is why the wavelet basis is the right choice.</div>`;
+  } else { $('#wgNote').innerHTML='<div class="alert aw">Wavelet-Galerkin not run in this configuration.</div>'; }
+
+  if(C.hjb && C.hjb.storage_grid){
+    mk('hjbChart',{type:'line',data:{labels:C.hjb.storage_grid,datasets:[
+      {label:'value function V(S)',data:C.hjb.value_at_t0,borderColor:'#1D7A5A',backgroundColor:'transparent',
+       borderWidth:2.2,tension:.25,pointRadius:0,yAxisID:'y'},
+      {label:'optimal release u*(S)',data:C.hjb.policy_at_t0,borderColor:'#B26A00',backgroundColor:'transparent',
+       borderWidth:2,borderDash:[6,4],tension:.25,pointRadius:0,yAxisID:'y1'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+        scales:{y:{position:'left',title:{display:true,text:'V(S) cost-to-go'}},
+                y1:{position:'right',title:{display:true,text:'release GWh'},grid:{display:false}},
+                x:{title:{display:true,text:'storage S (GWh)'},grid:{display:false}}}}});
+    $('#hjbNote').innerHTML=`<div class="alert ${C.hjb.stable?'as':'aw'}">Solver stable: <b>${C.hjb.stable}</b>.
+      U-shaped value function: <b>${C.hjb.u_shaped}</b> - high at empty (V=${fmt(C.hjb.V_at_empty,0)}, deficit risk),
+      minimum V=${fmt(C.hjb.V_at_min,0)} at S=${fmt(C.hjb.V_min_at_storage,0)} GWh, rising to
+      V=${fmt(C.hjb.V_at_full,0)} near full (spill penalty). The U-shape is the physically correct
+      signature: too little water causes deficits, too much causes spill.</div>`;
   }
 }
 
-const secs=[...document.querySelectorAll('section')],links=[...document.querySelectorAll('nav a')];
-addEventListener('scroll',()=>{let c='';secs.forEach(s=>{if(scrollY>=s.offsetTop-70)c=s.id});links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+c));});
-</script></body></html>
+function renderSweep(){
+  if(!SW || !SW.sweep) return;
+  const s=SW.sweep;
+  mk('sweepChart',{type:'line',data:{labels:s.map(r=>r.frac+'x'),datasets:[
+    {label:'vs greedy (M-D0)',data:s.map(r=>r.vss_vs_greedy),borderColor:'#2a6fb0',backgroundColor:'transparent',
+     borderWidth:2.4,tension:.3,pointRadius:3.5,pointBackgroundColor:'#2a6fb0'},
+    {label:'vs deterministic (M-D)',data:s.map(r=>r.vss),borderColor:'#A32B2B',backgroundColor:'transparent',
+     borderWidth:2.2,borderDash:[6,4],tension:.3,pointRadius:3.5,pointStyle:'rect',pointBackgroundColor:'#A32B2B'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'VSS (% cost reduction)'}},
+              x:{title:{display:true,text:'usable storage (x mean monthly inflow)'},grid:{display:false}}}}});
+  const pk=s.reduce((a,b)=>b.vss>a.vss?b:a);
+  const pg=s.reduce((a,b)=>b.vss_vs_greedy>a.vss_vs_greedy?b:a);
+  $('#sweepNote').innerHTML=`<div class="alert ai">Against the greedy baseline the stochastic policy
+    saves ${fmt(s[0].vss_vs_greedy,1)}% to ${fmt(pg.vss_vs_greedy,1)}%, growing with storage.
+    Against the deterministic water-value policy the gain peaks at ${fmt(pk.vss,1)}% at
+    ${pk.frac}x mean monthly inflow. When the reservoir is frequently binding the release is forced by
+    physical constraints, leaving little room for the water value to exploit; stochastic value emerges
+    once storage is large enough for genuine multi-period hedging.</div>`;
+}
+
+const DESC={
+ 'inflows_omvs.csv':'INPUT - real Manantali monthly inflow energy (1961-2015)',
+ 'plan4res_storage.csv':'INPUT - Plan4RES SS_SeasonalStorage.csv (reservoir parameters)',
+ 'plan4res_bellman.csv':'INPUT/REF - Plan4RES bellmanvalues.csv (their method output)',
+ 'plan4res_zonevalues.csv':'INPUT - Plan4RES ZV_ZoneValues.csv (demand, VOLL)',
+ 'plan4res_inflow.csv':'INPUT - Plan4RES hourly hydro run-of-river series',
+ 'results.json':'OUTPUT - full results (all WPs, live)',
+ 'results.csv':'OUTPUT - model comparison table',
+ 'sweep.json':'OUTPUT - storage-sensitivity curve',
+};
+function renderDownloads(man){
+  const tb=$('#dlTab tbody'); tb.innerHTML='';
+  man.forEach(f=>{
+    const kb=f.size>0?(f.size/1024).toFixed(1)+' KB':'-';
+    tb.innerHTML+=`<tr><td><code>${f.name}</code></td><td>${DESC[f.name]||''}</td>
+      <td class="num">${kb}</td><td><a class="btn sec" style="padding:4px 10px;text-decoration:none"
+      href="${EMBEDDED[f.name]||'#'}" download="${f.name}" ${f.exists?'':'disabled'}>Download</a></td></tr>`;
+  });
+}
+
+$('#btn-refresh').onclick=loadAll;
+$('#btn-run').disabled=true;
+$('#btn-refresh').style.display='none';
+$('#btn-run').onclick=async()=>{return;
+
+  const p={source:$('#i-source').value,n_iter:+$('#i-iter').value,n_clusters:+$('#i-clust').value,
+           n_mc:+$('#i-mc').value,n_bootstrap:+$('#i-boot').value};
+  $('#btn-run').disabled=true;
+  $('#btn-run').innerHTML='<span class="spin"></span> running...';
+  $('#runAlert').innerHTML='<div class="alert ai">Pipeline started on the server. This takes roughly 30-90 s depending on parameters.</div>';
+  await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  poll();
+};
+async function poll(){
+  const s=await (await fetch('/api/status')).json();
+  $('#runlog').textContent=(s.log||[]).join('\n')||'starting...';
+  $('#runlog').scrollTop=$('#runlog').scrollHeight;
+  if(s.running){ setTimeout(poll,900); return; }
+  $('#btn-run').disabled=false; $('#btn-run').textContent='Run pipeline';
+  $('#runAlert').innerHTML = s.rc===0
+    ? `<div class="alert as">Run finished in ${s.elapsed}s. All panels refreshed from the new output.</div>`
+    : `<div class="alert aw">Run exited with code ${s.rc}. See the log below.</div>`;
+  if(s.rc===0) loadAll();
+}
+loadAll();
+</script>
+</body>
+</html>

@@ -1,114 +1,213 @@
-# MOSSHOOS × Plan4RES — Stochastic Seasonal Storage Valuation
+# MOSSHOOS × Plan4RES
 
-Stochastic extension of the [Plan4RES](https://github.com/plan4res) seasonal-storage
-framework for the Senegal / WAPP power system, combining **Haar wavelet decomposition**,
-**block-bootstrap scenario generation**, **stochastic dual dynamic programming (SDDP)**,
-and **Hamilton–Jacobi–Bellman (HJB) control**.
+**Stochastic seasonal storage valuation for the Senegal River / WAPP system.**
 
-**Authors:** S. B. Affognon, B. M. Ndiaye, P. Mendy, C. M. F. Kebe
-(UCAD Dakar · University of Nairobi · CTSS)
+A stochastic extension of the [Plan4RES](https://github.com/plan4res) seasonal-storage
+framework, combining Haar wavelet decomposition, block-bootstrap scenario generation,
+stochastic dual dynamic programming, and Hamilton–Jacobi–Bellman control — validated on
+55 years of real OMVS inflow data.
 
----
-
-## What this repository proves
-
-The donor/supervisor requirement is: **use the same Plan4RES inputs to produce
-comparable outputs.** This repository does exactly that — the full MOSSHOOS
-pipeline (WP1–WP4) runs on data read **directly from Plan4RES's own toyDataset
-CSVs**, and produces a side-by-side comparison of:
-
-| Label | Method | |
-|-------|--------|---|
-| **M-S**  | MOSSHOOS | stochastic: wavelet + block-bootstrap + SDDP |
-| **M-S0** | ablation | stochastic SDDP **without** the wavelet step |
-| **M-D**  | Plan4RES | deterministic mean-inflow Benders cuts |
-| **M-D0** | baseline | greedy (no water value) |
-
-The **Value of Stochastic Solution** is VSS = C(M-D) − C(M-S).
+S. B. Affognon · B. M. Ndiaye · P. Mendy · C. M. F. Kebe
+UCAD Dakar · University of Nairobi · CTSS
 
 ---
 
-## Quick start — verify it yourself
+## Quick start
 
 ```bash
-# 1. install dependencies
-pip install -r requirements.txt          # or: pip install --break-system-packages -r requirements.txt
-
-# 2. run on Plan4RES toyDataset inputs (default path ~/plan4res_work/data/toyDataset)
-./run_all.sh
-
-# 3. or point to an explicit dataset / reservoir
-./run_all.sh /path/to/toyDataset RoGonDor
-
-# 4. or run on real OMVS data
-./run_all.sh --omvs data/OMVS_inflows.csv
-
-# 5. open the result
-xdg-open dashboard.html        # or just open dashboard.html in a browser
+git clone https://github.com/belvinos91/mosshoos-plan4res.git
+cd mosshoos-plan4res
+./setup.sh                                    # detect, install, verify
+./run_all.sh --omvs data/OMVS_inflows.csv     # run the pipeline
+python3 dashboard_server.py --port 8050       # open http://localhost:8050
 ```
 
-`run_all.sh` does two things:
-1. `compare_plan4res.py` — runs WP1–WP4, writes `results/comparison_results.json`
-2. `build_dashboard.py` — regenerates `dashboard.html` **from that JSON**
-
-**Every number in the dashboard comes from the JSON the pipeline just computed.
-Nothing is hardcoded** — re-run and everything updates. This is what makes the
-results verifiable.
+**Plan4RES is optional.** MOSSHOOS needs no external solver — the SDDP and HJB are
+self-contained. Their deterministic method (M-D) is reimplemented in `src/sddp_clean.py`,
+so the comparison runs whether or not Plan4RES is installed, and with or without a
+commercial solver licence.
 
 ---
 
-## Repository layout
+## Verify it yourself
 
-```
-mosshoos-plan4res/
-├── run_all.sh               # one-command entry point
-├── compare_plan4res.py      # runs MOSSHOOS on Plan4RES inputs, writes results JSON
-├── build_dashboard.py       # generates dashboard.html from results JSON (no hardcoding)
-├── dashboard.html           # generated comparison dashboard (open in browser)
-├── requirements.txt
-├── results/                 # comparison_results.json + .csv (generated)
-├── src/                     # the MOSSHOOS scientific pipeline
-│   ├── mosshoos_wp1_data.py       # WP1  data loading & validation
-│   ├── mosshoos_wp2_wavelet.py    # WP2  Haar DWT + Fourier seasonal fit
-│   ├── mosshoos_wp3_scenarios.py  # WP3  block-bootstrap + K-means scenarios
-│   ├── mosshoos_wp4_sddp.py       # WP4-A SDDP (M-S vs M-D vs M-D0)
-│   ├── mosshoos_wp4_ito_hjb.py    # WP4-B/C Itô SDE + HJB + wavelet-Galerkin
-│   ├── mosshoos_injection.py      # Plan4RES PostTreat injection points
-│   ├── mosshoos_run_all.py        # standalone full MOSSHOOS pipeline
-│   ├── PostTreatPlan4res_MOSSHOOS.py  # patched Plan4RES post-treatment
-│   └── plan4res_io.py             # reads Plan4RES toyDataset -> MOSSHOOS format
-└── plan4res_fixes/          # fixes to make Plan4RES's own solver build & run
-    └── FIXES_APPLIED.md
+Every component ships with unit tests that assert the mathematical properties that make
+the results trustworthy:
+
+```bash
+python3 src/sddp_clean.py        # monotone lower bound, gap closes, VSS>=0, cuts valid
+python3 src/sde_convergence.py   # Euler-Maruyama ~0.5, Milstein ~1.0 (path-coupled)
+python3 src/hjb_clean.py         # solution finite, V U-shaped, policy monotone
+python3 src/wavelet_galerkin.py  # Haar basis orthonormal, O(M^-1) convergence
 ```
 
-## Method (equations)
+Nothing in the results is hand-entered: `RESULTS.md` is **generated** from the computed
+JSON by `write_results.py`, so it cannot drift from the numbers.
 
-**WP2 — Haar wavelet:**  x_t = A_J(t) + Σ_j D_j(t)
+---
 
-**WP2 — Fourier seasonal:**  θ(t) = a₀ + Σ_k [a_k cos(2πkt) + b_k sin(2πkt)]
+## What is compared
 
-**WP3 — scenarios:**  block-bootstrap (block b=4) + K-means → {(η^k, w_k)}
+| Label | Method |
+|-------|--------|
+| **M-S** | MOSSHOOS — stochastic: wavelet + block-bootstrap + SDDP |
+| **M-S0** | ablation — stochastic SDDP without the wavelet step |
+| **M-D** | Plan4RES — deterministic mean-inflow Benders cuts |
+| **M-D0** | baseline — greedy, no water value |
 
-**WP4-A — SDDP Bellman cuts:**  V_t(S) = max_ℓ { b_ℓ + a_ℓ·S }
+VSS = C(M-D) − C(M-S). We report the comparison against **both** M-D and the greedy
+baseline, because they answer different questions: M-D0 measures the value of water-value
+operation at all; M-D measures the additional value of modelling uncertainty.
 
-**WP4-B — Itô SDE (OU / CIR):**
-  dQ = κ(μ−Q)dt + σ dW   /   dQ = κ(θ−Q)dt + σ√Q dW
+---
 
-**WP4-C — HJB:**
-  ρJ = sup_u { R + (Q−u)J_V + κ(μ−Q)J_Q + ½σ² J_QQ }
-  u*(V,Q) = Π[0,u_max]( (b − J_V)/c )
+## Headline finding
 
-## Key finding
+On the real 55-year Manantali record (CV = 1.36), at the reservoir's actual scale:
 
-On Plan4RES's **low-variability toy data**, deterministic planning is nearly
-adequate (small VSS), but the greedy baseline is clearly worse — confirming the
-water-value mechanism. On **real OMVS data** (Senegal River, CV ≈ 1.02, severe
-droughts), stochastic optimisation delivers a substantial cost reduction.
-**Stochastic seasonal storage valuation matters precisely in high-variability
-systems like the Senegal River basin.**
+- **M-S vs greedy: +7.3%** — the value of water-value-based operation
+- **M-S vs deterministic: 0.0%** — no additional value from uncertainty *at this storage*
+
+The full picture is a **curve**, not a number (`storage_sweep.py`):
+
+| Storage (× mean monthly inflow) | vs greedy | vs deterministic |
+|--------------------------------:|----------:|-----------------:|
+| 0.1× | +1.5% | 0% |
+| 1× | +4.5% | 0% |
+| 3× (Manantali) | +13.3% | 0% |
+| 4× | +17.1% | 0% |
+| 6× | +17.0% | **+9.6%** |
+
+**Interpretation.** When the reservoir binds frequently, the release is forced by physical
+constraints and the water value has little discretion to exploit — so stochastic and
+deterministic policies coincide. Stochastic value emerges only once storage is large
+enough for genuine multi-period hedging. The value of stochastic seasonal storage
+valuation is governed by the storage-to-inflow regime and the cascade topology, not by a
+single headline number.
+
+On the **Plan4RES toyDataset**, VSS = 0. That is correct: their dataset is a single
+synthetic year with a seasonal cycle but no interannual variability. With no uncertainty
+to hedge, the two policies coincide — which validates that the method does not manufacture
+value where none exists.
+
+See [RESULTS.md](RESULTS.md) for the full validated numbers and the defects found and
+corrected along the way.
+
+---
+
+## Dashboard
+
+Two ways, same content:
+
+```bash
+python3 dashboard_server.py --port 8050   # live: change parameters, re-run, download
+python3 make_static.py                    # standalone dashboard.html, offline, no server
+```
+
+The live server exposes a small API (`/api/results`, `/api/run`, `/api/download/<file>`)
+and lets you move sliders — iterations, scenarios K, Monte-Carlo paths, bootstrap cycles —
+press **Run**, watch the solver log stream in, and download the new output. The static
+export bakes the current results into a single file you can email.
+
+Tabs: Overview · Plan4RES · MOSSHOOS method (equations) · Comparison · Scenarios ·
+Wavelet · Continuous-time · Run models · Data & downloads.
+
+---
+
+## Method
+
+**WP1** — monthly inflow series, from Plan4RES CSVs *or* real OMVS data.
+Both sources funnel into one format, which is what makes the comparison like-for-like.
+
+**WP2** — Haar wavelet split `x_t = A_J(t) + Σ_j D_j(t)`; Fourier fit of `A_J` gives the
+seasonal drift `θ(t)` used by the SDE.
+
+**WP3** — block-bootstrap (block b = 4 months, preserving autocorrelation) + K-means
+reduction to K representative scenarios; validated by KS, ACF and energy score.
+
+**WP4-A** — SDDP water values: `Q_t(S) = min_u { C(S,q,u) + γ E_q[Q_{t+1}(S')] }`, with
+`Q_{t+1}(S') ≥ max_ℓ {a_ℓ + b_ℓ S'}`. Supporting hyperplanes accumulate, so the
+approximation is a valid lower bound and improves monotonically.
+
+**WP4-B** — Itô SDE for the inflow: `dQ = κ(θ(t) − Q)dt + σ₀√Q dW` (CIR keeps `Q > 0`
+when Feller holds).
+
+**WP4-C** — HJB control:
+
+```
+-∂V/∂t = min_u { C(S,Q,u) + (Q−u−sp)·∂V/∂S + κ(θ(t)−Q)·∂V/∂Q + ½σ²(Q)·∂²V/∂Q² }
+```
+
+Randomness lives in the inflow `Q`; storage evolves deterministically given `(u,Q)`. `V`
+has kinks in `S` where the release regime switches, so `V ∈ H¹` — which is exactly why a
+Haar wavelet basis attains the optimal `O(M⁻¹)` rate and a smoother basis cannot.
+
+---
+
+## Layout
+
+```
+├── setup.sh                  detect environment, install, verify
+├── run_all.sh                one command: pipeline + dashboard
+├── compare_plan4res.py       runs WP1-WP4 on Plan4RES inputs or OMVS data
+├── storage_sweep.py          VSS vs storage-to-inflow ratio
+├── write_results.py          generates RESULTS.md from the computed JSON
+├── dashboard_server.py       live dashboard + re-run API (stdlib only)
+├── dashboard_app.html        the dashboard
+├── make_static.py            bake it into a standalone offline file
+├── src/
+│   ├── sddp_clean.py         validated SDDP water values  (+ unit tests)
+│   ├── hjb_clean.py          validated HJB PDE solver     (+ unit tests)
+│   ├── sde_convergence.py    path-coupled convergence     (+ unit tests)
+│   ├── wavelet_galerkin.py   Haar reduced-basis HJB       (+ unit tests)
+│   ├── hjb_integrate.py      runs the continuous-time strand from pipeline inputs
+│   ├── plan4res_io.py        reads Plan4RES's own inputs into MOSSHOOS format
+│   ├── mosshoos_wp1_data.py  … wp2_wavelet … wp3_scenarios … wp4_sddp … wp4_ito_hjb
+│   └── PostTreatPlan4res_MOSSHOOS.py
+├── data/OMVS_inflows.csv     real Manantali monthly inflow energy, 1961-2015
+├── results/                  generated: comparison_results.json/.csv, storage_sweep.json
+└── plan4res_fixes/
+    ├── FIXES_APPLIED.md      MPI init, USE_MPI flag, ssv.sh paths
+    └── PLAN4RES_SDDP_BUG.md  full diagnosis of the HiGHS "no linearization" failure
+```
+
+---
+
+## Data
+
+**Real OMVS Manantali** — 660 months (1961–2015) of daily discharge from the OMVS record,
+converted to monthly energy with the documented factor 13.77324 MWh/day per m³/s.
+Mean 102.6 GWh/month, CV = 1.36, including the Sahel droughts.
+
+**Plan4RES toyDataset** — read directly from their `SS_SeasonalStorage.csv`,
+`ZV_ZoneValues.csv`, hourly hydro series and `bellmanvalues.csv`, so the "same inputs"
+claim is literal.
+
+---
+
+## On running Plan4RES itself
+
+Plan4RES's own `sddp_solver` currently **fails on HiGHS-only builds** with
+`SDDPOptimizer::oneStepBackward: no linearization is available`. We traced it: the inner
+unit-commitment subproblem is solved as a MIP despite `intRelaxIntVars 1`; a MIP has no
+duals; no duals means no linearization; SDDP cannot build a cut. It is reproducible on
+their own toyDataset and affects every user without a commercial licence.
+
+Full trace, including three further defects we fixed (MPI initialization, a missing
+`USE_MPI` compile flag, and six bare-filename paths in `ssv.sh`), is in
+[`plan4res_fixes/PLAN4RES_SDDP_BUG.md`](plan4res_fixes/PLAN4RES_SDDP_BUG.md).
+
+This is **why M-D is reimplemented here** rather than invoked: it is not that we did not
+run their solver, it is that their solver does not currently run without Gurobi. Our M-D
+follows their documented method — deterministic mean-inflow Benders cuts — on their own
+input files.
+
+---
 
 ## Requirements
 
-Python ≥ 3.10 with numpy, pandas, scipy, scikit-learn, matplotlib.
-On the srv-ortad server use `/usr/bin/python3` (3.12) — the /usr/local python3.10
-lacks the `_ctypes` module.
+Python ≥ 3.10 with numpy, pandas, scipy, scikit-learn. Nothing else.
+`./setup.sh` checks and installs.
+
+On srv-ortad use `/usr/bin/python3` (3.12); the `/usr/local` 3.10 build lacks `_ctypes`,
+which breaks pandas.
