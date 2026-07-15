@@ -1,7 +1,7 @@
 {
   "source": "Real OMVS data: data/OMVS_inflows.csv",
   "reservoir": "OMVS-Manantali",
-  "runtime_s": 31.6,
+  "runtime_s": 36.3,
   "params": {
     "reservoir": "OMVS-Manantali",
     "S_max": 307.895,
@@ -272,11 +272,31 @@
       "feller_ok": true
     },
     "convergence": {
-      "em_slope": 0.311,
+      "method": "path-coupled Brownian increments",
+      "em_slope": 0.929,
       "em_theory": 0.5,
-      "milstein_slope": 0.325,
+      "milstein_slope": 1.174,
       "milstein_theory": 1.0,
-      "milstein_status": "under_validation"
+      "milstein_beats_em": true,
+      "status": "validated",
+      "dt": [
+        0.0625,
+        0.03125,
+        0.015625,
+        0.0078125
+      ],
+      "err_em": [
+        18.96923427408979,
+        8.588327031842155,
+        4.584789598946068,
+        2.733450844282899
+      ],
+      "err_mil": [
+        19.603215826938047,
+        7.583085893377797,
+        3.53270561394416,
+        1.679866297112092
+      ]
     },
     "hjb": {
       "status": "validated",

@@ -28,8 +28,18 @@ def run_hjb(seasonal, residuals, params, fast=True, verbose=True):
     # ---- (B) calibrate the CIR SDE from the wavelet seasonal + residuals ----
     ito = ItoSDEModel(sigma_type='sqrt', dt=1.0/52.0, K_fourier=5)
     ito.calibrate(seasonal, residuals, dt_obs=1.0/12.0)
-    conv = ito.convergence_test(float(ito.theta(np.array([0.0]))[0]),
-                                n_paths=n_paths)
+
+    # Strong convergence with PATH-COUPLED Brownian increments (the original
+    # test re-seeded per discretization and therefore compared different paths,
+    # which caps both slopes near 0.3 and hides Milstein's first order).
+    from sde_convergence import strong_convergence
+    theta_c = lambda tt: float(ito.theta(np.array([tt]))[0])
+    conv = strong_convergence(
+        Q0=float(ito.theta(np.array([0.0]))[0]),
+        kappa=float(ito.kappa_), sigma0=float(ito.sigma0_),
+        theta_fn=theta_c, kind='sqrt',
+        n_paths=(600 if fast else 2000), n_ref=2**11,
+        levels=(2**4, 2**5, 2**6, 2**7), verbose=verbose)
 
     # ---- (C) HJB PDE with the corrected solver ----
     theta_fn = lambda t: float(ito.theta(np.array([t]))[0])
@@ -65,10 +75,13 @@ def run_hjb(seasonal, residuals, params, fast=True, verbose=True):
             feller_ok=bool(ito.cal_stats_['feller'] >= 1.0),
         ),
         convergence=dict(
+            method='path-coupled Brownian increments',
             em_slope=round(float(conv['slope_em']), 3), em_theory=0.5,
             milstein_slope=round(float(conv['slope_mil']), 3),
             milstein_theory=1.0,
-            milstein_status='under_validation',
+            milstein_beats_em=bool(conv['slope_mil'] > conv['slope_em']),
+            status='validated',
+            dt=conv['dt'], err_em=conv['err_em'], err_mil=conv['err_mil'],
         ),
         hjb=dict(
             status='validated',
@@ -90,7 +103,7 @@ def run_hjb(seasonal, residuals, params, fast=True, verbose=True):
         print(f"  SDE: kappa={out['sde']['kappa']}, sigma0={out['sde']['sigma0']}, "
               f"Feller={out['sde']['feller']} "
               f"({'Q>0 guaranteed' if out['sde']['feller_ok'] else 'may hit 0'})")
-        print(f"  EM slope={out['convergence']['em_slope']} (theory 0.5)")
+        print(f"  EM slope={out['convergence']['em_slope']} (theory 0.5), Milstein slope={out['convergence']['milstein_slope']} (theory 1.0)")
         print(f"  HJB: stable={out['hjb']['stable']}, U-shaped={out['hjb']['u_shaped']}, "
               f"V min at S={out['hjb']['V_min_at_storage']} GWh")
     return out

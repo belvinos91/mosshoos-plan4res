@@ -119,7 +119,37 @@ Status as of this commit:
   minimum at S = 127 GWh, and the calibrated CIR satisfies Feller (13.85), so
   Q_t > 0 is guaranteed.
 
-- **Milstein convergence (UNDER VALIDATION).** Slope 0.32 on real data
-  (theory 1.0); the Milstein correction term needs review. EM (0.31 real /
-  0.44 synthetic, theory 0.5) is reported. Wavelet-Galerkin projection is
-  pending re-derivation against the corrected HJB reference.
+- **Strong convergence: EM and Milstein (VALIDATED).** The original
+  convergence_test re-seeded the RNG before each discretization. Because the
+  number of steps differs per dt, this drew a DIFFERENT Brownian path for each
+  level. Strong convergence is a pathwise property:
+
+      e(dt) = E| Q_T^{dt} - Q_T^{ref} |   on the SAME Brownian path
+
+  Without path coupling the measured error is dominated by the difference
+  between independent paths, which caps both slopes near 0.3 and hides
+  Milstein's first order. This was the observed symptom (EM 0.31, Milstein 0.32
+  -- nearly identical, which is the tell).
+
+  src/sde_convergence.py implements the correct test: Brownian increments are
+  generated once on the finest grid and each coarser level is built by SUMMING
+  the fine increments (Brownian consistency), so every scheme sees the same
+  driving path. Unit tests (run: python3 src/sde_convergence.py) in a
+  Feller-safe regime give:
+
+      EM slope       = 0.657   (theory 0.5)
+      Milstein slope = 1.031   (theory 1.0)
+      Milstein error falls 1.77e-2 -> 1.01e-3 as dt refines
+
+  Conclusion: the Milstein IMPLEMENTATION was correct all along; only the test
+  was flawed. This is itself a reportable methodological point.
+
+  On the calibrated real-OMVS parameters the measured slopes are EM 0.93 and
+  Milstein 1.17. EM exceeds its 0.5 asymptotic rate here because the calibrated
+  kappa saturates at the 15/yr cap, so the drift dominates the diffusion and the
+  scheme behaves near first order in this regime. The controlled unit test above
+  (moderate kappa, Feller-safe) is the proper demonstration of the theoretical
+  rates.
+
+- **Wavelet-Galerkin projection (UNDER VALIDATION).** Pending re-derivation
+  against the corrected HJB reference solution.
