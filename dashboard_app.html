@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOSSHOOS - Stochastic Seasonal Storage Valuation</title>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface2:#f0f2f5;
+  --border:#dfe3e8; --border2:#c9d1d9;
+  --text:#16202c; --text2:#5a6673; --text3:#8a95a1;
+  --primary:#1F4E79; --primary-l:#e8f0f7;
+  --success:#1D7A5A; --success-l:#e7f4ee;
+  --info:#2a6fb0;   --info-l:#e8f1fa;
+  --warn:#B26A00;   --warn-l:#fdf1e0;
+  --danger:#A32B2B; --danger-l:#fbeaea;
+  --radius:8px; --radius-lg:11px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 40px}
+.top{display:flex;align-items:center;gap:10px;padding:14px 0 12px;flex-wrap:wrap}
+.brand{font-size:17px;font-weight:650;color:var(--primary)}
+.pill{font-size:10px;padding:2px 9px;border-radius:12px;font-weight:600;background:var(--success-l);color:var(--success)}
+.pill-b{background:var(--info-l);color:var(--info)}
+.pill-w{background:var(--warn-l);color:var(--warn)}
+.spacer{flex:1}
+.run-info{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{padding:8px 14px;font-size:12.5px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:inherit;transition:.12s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.pn{display:none}.pn.on{display:block}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:15px 17px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.kl{font-size:10px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.kv{font-size:22px;font-weight:600;line-height:1.15}
+.ks{font-size:10.5px;color:var(--text3);margin-top:2px}
+.kpi.g{background:var(--success-l);border-color:#cbe6da}.kpi.g .kv{color:var(--success)}
+.kpi.b{background:var(--info-l);border-color:#cfe0f0}.kpi.b .kv{color:var(--info)}
+.kpi.w{background:var(--warn-l);border-color:#f0dcb8}.kpi.w .kv{color:var(--warn)}
+.kpi.r{background:var(--danger-l);border-color:#f0cccc}.kpi.r .kv{color:var(--danger)}
+.sec{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px}
+h2{font-size:16px;color:var(--primary);margin-bottom:4px}
+h3{font-size:13.5px;color:var(--success);margin:16px 0 6px}
+.lead{color:var(--text2);font-size:12.5px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:700;color:var(--text2);text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);background:var(--surface2);text-transform:uppercase;letter-spacing:.04em}
+td{padding:7px 9px;border-bottom:1px solid var(--border)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--success-l)}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.bg{background:var(--success-l);color:var(--success)}
+.br{background:var(--danger-l);color:var(--danger)}
+.bb{background:var(--info-l);color:var(--info)}
+.bw{background:var(--warn-l);color:var(--warn)}
+.bn{background:var(--surface2);color:var(--text2)}
+.ch{position:relative;height:280px}
+.ch.sm{height:220px}
+.srow{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.srow label{width:190px;font-size:11.5px;color:var(--text2);flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--primary)}
+.srow .rv{min-width:48px;text-align:right;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;font-size:12px;font-weight:600;
+ border:1px solid var(--primary);border-radius:var(--radius);cursor:pointer;background:var(--primary);
+ color:#fff;font-family:inherit;transition:.12s}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sec{background:var(--surface);color:var(--text);border-color:var(--border2)}
+.btn.sec:hover{background:var(--surface2);filter:none}
+.dl-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.alert{padding:9px 12px;border-radius:var(--radius);font-size:11.5px;line-height:1.6;margin:10px 0;border-left:3px solid}
+.ai{background:var(--info-l);color:#1b4f80;border-color:var(--info)}
+.as{background:var(--success-l);color:#12503b;border-color:var(--success)}
+.aw{background:var(--warn-l);color:#7a4a00;border-color:var(--warn)}
+code{font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:3px}
+pre{background:#11202e;color:#cfe3f5;padding:11px;border-radius:var(--radius);font-size:11px;
+ font-family:var(--mono);line-height:1.65;overflow:auto;max-height:340px;margin-top:8px}
+.eq{background:var(--surface2);border-left:3px solid var(--primary);border-radius:6px;padding:10px 14px;margin:9px 0;overflow-x:auto}
+.eq.g{border-left-color:var(--success)}
+.imp{background:var(--success-l);border:1px solid #cbe6da;border-radius:var(--radius);padding:12px 14px;margin:9px 0}
+.imp h4{font-size:12.5px;color:var(--success);margin-bottom:4px}
+.arw{color:var(--warn);font-weight:700;margin:0 5px}
+.legs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.sw{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.muted{color:var(--text3);font-size:11.5px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:5px}
+footer{text-align:center;color:var(--text3);font-size:11px;padding:22px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <span class="brand">MOSSHOOS</span>
+  <span class="pill" id="p-source">loading...</span>
+  <span class="pill pill-b">Plan4RES extension</span>
+  <span class="pill pill-w" id="p-validated">all components unit-tested</span>
+  <span class="spacer"></span>
+  <span class="run-info" id="runinfo"></span>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-p="ov">Overview</button>
+  <button class="tab" data-p="p4r">Plan4RES</button>
+  <button class="tab" data-p="mos">MOSSHOOS method</button>
+  <button class="tab" data-p="cmp">Comparison</button>
+  <button class="tab" data-p="sc">Scenarios</button>
+  <button class="tab" data-p="wv">Wavelet</button>
+  <button class="tab" data-p="ct">Continuous-time</button>
+  <button class="tab" data-p="run">Run models</button>
+  <button class="tab" data-p="dl">Data &amp; downloads</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="pn-ov" class="pn on">
+  <div class="g4" id="kpis"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="sec">Cost by model</div>
+      <div class="ch sm"><canvas id="ovCost"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec">Monthly inflow climatology</div>
+      <div class="ch sm"><canvas id="ovClim"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">What this dashboard is</div>
+    <p class="lead">Every number here is computed by the pipeline and read live from
+      <code>results/comparison_results.json</code>. Nothing is hardcoded. Change the
+      parameters in <b>Run models</b>, re-run, and every panel updates.</p>
+    <div class="alert as"><b>Validated components.</b> SDDP water values, Ito SDE calibration,
+      Euler-Maruyama / Milstein convergence, HJB PDE solver, and the Haar wavelet-Galerkin
+      projection each ship with unit tests. Run them with
+      <code>python3 src/sddp_clean.py</code>, <code>src/sde_convergence.py</code>,
+      <code>src/hjb_clean.py</code>, <code>src/wavelet_galerkin.py</code>.</div>
+    <div class="alert ai"><b>Model legend.</b>
+      <span class="badge bg">M-S</span> MOSSHOOS stochastic (wavelet + bootstrap + SDDP) &nbsp;
+      <span class="badge bb">M-D</span> Plan4RES deterministic (mean-inflow Benders cuts) &nbsp;
+      <span class="badge bn">M-S0</span> stochastic without wavelet (ablation) &nbsp;
+      <span class="badge bn">M-D0</span> greedy, no water value (baseline)</div>
+  </div>
+</div>
+
+<!-- PLAN4RES -->
+<div id="pn-p4r" class="pn">
+  <div class="card">
+    <h2>Plan4RES - deterministic seasonal storage value</h2>
+    <p class="lead">Plan4RES computes seasonal storage value with Benders cuts on a
+      deterministic mean-inflow forecast. Its SMS++ solver writes those cuts to
+      <code>bellmanvalues.csv</code>.</p>
+    <h3>Bellman value as a maximum of Benders cuts</h3>
+    <div class="eq">\[ V_t(S)\;=\;\max_{\ell\in\mathcal{L}_t}\big\{\,b_\ell+\mathbf{a}_\ell^{\top}\mathbf{S}\,\big\} \]</div>
+    <p class="muted">The inflow enters as the deterministic seasonal mean \(\bar{Q}_t=\theta(t)\).
+      Uncertainty is not represented, so the policy cannot hedge against dry years.</p>
+    <h3>Reference output shipped with the dataset</h3>
+    <div id="p4rref"><p class="muted">Run against a Plan4RES dataset to load their bellmanvalues.csv.</p></div>
+    <h3>Solver fixes we contributed</h3>
+    <div class="alert ai">Three defects blocked their <code>sddp_solver</code> from running:
+      an MPI communicator constructed before <code>MPI_Init</code>; a missing
+      <code>-DUSE_MPI</code> compile flag; and six bare-filename paths in
+      <code>ssv.sh</code>. All fixed (see <code>plan4res_fixes/FIXES_APPLIED.md</code>).
+      A remaining upstream issue - <code>oneStepBackward: no linearization is available</code>
+      on the stock toyDataset - is reported to the maintainers.</div>
+  </div>
+</div>
+
+<!-- MOSSHOOS METHOD -->
+<div id="pn-mos" class="pn">
+  <div class="card">
+    <h2>MOSSHOOS - stochastic extension</h2>
+    <p class="lead">Four coupled layers replace the deterministic assumption with a full
+      stochastic treatment of inflow uncertainty.</p>
+    <div class="g2">
+      <div>
+        <h3>WP2 - Haar wavelet decomposition</h3>
+        <div class="eq g">\[ x_t = A_J(t) + \sum_{j=1}^{J} D_j(t) \]</div>
+        <p class="muted" id="m-wp2"></p>
+      </div>
+      <div>
+        <h3>WP2 - Fourier seasonal fit</h3>
+        <div class="eq g">\[ \theta(t)=a_0+\sum_{k=1}^{K}\big[a_k\cos(2\pi kt)+b_k\sin(2\pi kt)\big] \]</div>
+        <p class="muted" id="m-four"></p>
+      </div>
+    </div>
+    <h3>WP3 - block-bootstrap scenario generation</h3>
+    <p class="muted" id="m-wp3"></p>
+    <div class="g2">
+      <div>
+        <h3>WP4-A - SDDP water values</h3>
+        <div class="eq g">\[ Q_t(S)=\min_{u}\Big\{ C(S,q,u)+\gamma\,\mathbb{E}_q\big[Q_{t+1}(S')\big]\Big\} \]</div>
+        <div class="eq g">\[ Q_{t+1}(S')\;\ge\;\max_\ell\{a_\ell+b_\ell S'\} \]</div>
+        <p class="muted">Supporting hyperplanes accumulate, so the approximation is a valid
+          lower bound and improves monotonically (Pereira-Pinto).</p>
+      </div>
+      <div>
+        <h3>WP4-B - Ito SDE for the inflow</h3>
+        <div class="eq g">\[ \mathrm{d}Q_t=\kappa\big(\theta(t)-Q_t\big)\mathrm{d}t+\sigma_0\sqrt{Q_t}\,\mathrm{d}W_t \]</div>
+        <p class="muted">CIR form keeps \(Q_t>0\) when the Feller condition
+          \(2\kappa\theta\ge\sigma_0^2\) holds.</p>
+      </div>
+    </div>
+    <h3>WP4-C - Hamilton-Jacobi-Bellman control</h3>
+    <div class="eq g">\[ -\frac{\partial V}{\partial t}=\min_{0\le u\le u_{\max}}\Big\{ C(S,Q,u)
+      +(Q-u-\mathrm{sp})\frac{\partial V}{\partial S}
+      +\kappa(\theta(t)-Q)\frac{\partial V}{\partial Q}
+      +\tfrac{1}{2}\sigma^2(Q)\frac{\partial^2 V}{\partial Q^2}\Big\} \]</div>
+    <p class="muted">Randomness lives in the inflow \(Q\); storage \(S\) evolves
+      deterministically once \((u,Q)\) are fixed. The value function has kinks in \(S\)
+      where the release regime switches, so \(V\in H^1\) - which is exactly why a Haar
+      wavelet basis attains the optimal \(O(M^{-1})\) rate.</p>
+    <h3>Where we improve Plan4RES</h3>
+    <div class="imp"><h4>1 - Inflow representation</h4>
+      <span class="badge bb">Plan4RES</span> single deterministic mean <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> wavelet split + stochastic residual</div>
+    <div class="imp"><h4>2 - Scenario generation</h4>
+      <span class="badge bb">Plan4RES</span> none / i.i.d. <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> block-bootstrap (b=4) + K-means, energy-score validated</div>
+    <div class="imp"><h4>3 - Water values</h4>
+      <span class="badge bb">Plan4RES</span> deterministic Benders cuts <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> SDDP over the full scenario set</div>
+    <div class="imp"><h4>4 - Release policy</h4>
+      <span class="badge bb">Plan4RES</span> stage-wise LP <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> continuous-time HJB feedback under CIR dynamics</div>
+    <div class="imp"><h4>5 - Uncertainty quantification</h4>
+      <span class="badge bb">Plan4RES</span> not reported <span class="arw">-&gt;</span>
+      <span class="badge bg">MOSSHOOS</span> VSS, storage-sensitivity curve, convergence rates</div>
+  </div>
+</div>
+
+<!-- COMPARISON -->
+<div id="pn-cmp" class="pn">
+  <div class="card">
+    <div class="sec">Model comparison (Monte-Carlo, common scenarios)</div>
+    <table id="cmpTab"><thead><tr>
+      <th>Model</th><th class="num">Mean cost</th><th class="num">P90 cost</th>
+      <th class="num">Deficit (GWh)</th><th class="num">vs M-S</th></tr></thead><tbody></tbody></table>
+    <div class="ch" style="margin-top:12px"><canvas id="cmpChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="sec">Storage-sensitivity: where stochastic value lives</div>
+    <p class="lead">VSS as a function of usable storage, computed from the real record.
+      This is the defensible result: the value of stochastic optimisation is governed by the
+      storage-to-inflow regime, not by a single headline number.</p>
+    <div class="legs">
+      <span class="leg"><span class="sw" style="background:#2a6fb0"></span>M-S vs greedy (M-D0)</span>
+      <span class="leg"><span class="sw" style="background:#A32B2B"></span>M-S vs deterministic (M-D)</span>
+    </div>
+    <div class="ch"><canvas id="sweepChart"></canvas></div>
+    <div id="sweepNote"></div>
+  </div>
+</div>
+
+<!-- SCENARIOS -->
+<div id="pn-sc" class="pn">
+  <div class="card">
+    <div class="sec">Inflow scenarios eta (dry -&gt; wet) vs the deterministic mean</div>
+    <div class="ch"><canvas id="scChart"></canvas></div>
+    <p class="muted" id="scNote"></p>
+  </div>
+  <div class="card">
+    <div class="sec">Scenario weights and annual volumes</div>
+    <table id="scTab"><thead><tr><th>#</th><th>Type</th><th class="num">Weight</th>
+      <th class="num">Annual volume (GWh)</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- WAVELET -->
+<div id="pn-wv" class="pn">
+  <div class="card">
+    <div class="sec">Haar wavelet energy spectrum</div>
+    <p class="lead">Share of signal energy in the seasonal approximation \(A_J\) and each
+      detail level \(D_j\) (Parseval).</p>
+    <div class="ch sm"><canvas id="wvChart"></canvas></div>
+    <div id="wvKpi" class="g4" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- CONTINUOUS TIME -->
+<div id="pn-ct" class="pn">
+  <div class="g4" id="ctKpi"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="sec">Ito SDE calibration</div>
+      <table id="sdeTab"><thead><tr><th>Parameter</th><th class="num">Value</th></tr></thead><tbody></tbody></table>
+      <div id="sdeNote"></div>
+    </div>
+    <div class="card">
+      <div class="sec">Wavelet-Galerkin convergence</div>
+      <table id="wgTab"><thead><tr><th class="num">J</th><th class="num">M</th>
+        <th class="num">L2 error</th></tr></thead><tbody></tbody></table>
+      <div id="wgNote"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">HJB value function and optimal release at t=0</div>
+    <div class="ch"><canvas id="hjbChart"></canvas></div>
+    <div id="hjbNote"></div>
+  </div>
+</div>
+
+<!-- RUN -->
+<div id="pn-run" class="pn">
+  <div class="card">
+    <h2>Run the models</h2>
+    <p class="lead">Change the parameters and re-run the full pipeline on the server.
+      Results, charts and downloads all refresh from the new output.</p>
+    <div class="g2">
+      <div>
+        <div class="srow"><label>Data source</label>
+          <select id="i-source" style="flex:1;padding:5px;border:1px solid var(--border2);border-radius:6px;font-family:inherit">
+            <option value="omvs">Real OMVS (Manantali, 55 yr)</option>
+            <option value="plan4res">Plan4RES toyDataset (RoGonDor)</option>
+          </select></div>
+        <div class="srow"><label>SDDP iterations</label>
+          <input type="range" id="i-iter" min="20" max="1500" step="10" value="150">
+          <span class="rv" id="v-iter">150</span></div>
+        <div class="srow"><label>Scenarios K (K-means)</label>
+          <input type="range" id="i-clust" min="3" max="40" step="1" value="10">
+          <span class="rv" id="v-clust">10</span></div>
+      </div>
+      <div>
+        <div class="srow"><label>Monte-Carlo paths</label>
+          <input type="range" id="i-mc" min="50" max="5000" step="50" value="200">
+          <span class="rv" id="v-mc">200</span></div>
+        <div class="srow"><label>Bootstrap cycles N</label>
+          <input type="range" id="i-boot" min="50" max="2000" step="10" value="150">
+          <span class="rv" id="v-boot">150</span></div>
+        <div class="srow"><label></label>
+          <button class="btn" id="btn-run">Run pipeline</button>
+          <button class="btn sec" id="btn-refresh">Refresh results</button></div>
+      </div>
+    </div>
+    <div class="alert ai" id="rtEst"></div>
+    <div class="alert aw"><b>Reading the output.</b> The Monte-Carlo count controls only the
+      precision of the reported means - it cannot create variance that is not in the data.
+      If the scenario spread is flat (check <b>Scenarios</b>: P10 ~ P50 ~ P90), then every model
+      will cost the same no matter how many MC paths you request, because the release decision is
+      forced rather than chosen. Raise MC paths to tighten the error bars; raise iterations to
+      converge the water values; raise K only when the scenarios genuinely differ.</div>
+    <div id="runAlert"></div>
+    <div class="sec" style="margin-top:12px">Live solver output</div>
+    <pre id="runlog">Ready. Press "Run pipeline" to execute the models on the server.</pre>
+  </div>
+</div>
+
+<!-- DOWNLOADS -->
+<div id="pn-dl" class="pn">
+  <div class="card">
+    <h2>Data and downloads</h2>
+    <p class="lead">Every input and output, straight from the server. Inputs are what the
+      models read; outputs are what they just produced.</p>
+    <h3>MOSSHOOS</h3>
+    <table id="dlTab"><thead><tr><th>File</th><th>What it is</th>
+      <th class="num">Size</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="card">
+    <div class="sec">Reproduce everything</div>
+    <pre>git clone https://github.com/belvinos91/mosshoos-plan4res.git
+cd mosshoos-plan4res
+pip install -r requirements.txt
+
+# unit tests - verify each component
+python3 src/sddp_clean.py        # monotone LB, VSS&gt;=0, valid cuts
+python3 src/sde_convergence.py   # EM ~0.5, Milstein ~1.0
+python3 src/hjb_clean.py         # stable, U-shaped V, correct policy
+python3 src/wavelet_galerkin.py  # O(M^-1) rate
+
+# full pipeline
+./run_all.sh --omvs data/OMVS_inflows.csv
+python3 storage_sweep.py --inflow data/OMVS_inflows.csv
+
+# this dashboard
+python3 dashboard_server.py --port 8050</pre>
+  </div>
+</div>
+
+<footer>MOSSHOOS &middot; S. B. Affognon, B. M. Ndiaye, P. Mendy, C. M. F. Kebe &middot;
+UCAD Dakar &middot; University of Nairobi &middot; served live from srv-ortad</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = (x,d=1) => (x==null||isNaN(x)) ? '-' : Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const PAL = ['#C0392B','#E67E22','#27AE60','#2980B9','#16A085','#8E44AD','#D35400','#2C3E50','#7F8C8D','#1ABC9C',
+             '#B03A2E','#CA6F1E','#1E8449','#21618C','#117864','#6C3483','#A04000','#212F3D','#616A6B','#148F77'];
+let R=null, SW=null, charts={};
+
+function mk(id, cfg){ if(charts[id]) charts[id].destroy(); charts[id]=new Chart($('#'+id), cfg); }
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); $('#pn-'+t.dataset.p).classList.add('on');
+});
+function est(){
+  const it=+$('#i-iter').value, mc=+$('#i-mc').value, K=+$('#i-clust').value, N=+$('#i-boot').value;
+  // rough cost model: SDDP work ~ iter*K, MC ~ mc, 4 models
+  const s = 4*(it*K*0.0016 + mc*0.004) + N*0.002 + 25;
+  const m = Math.floor(s/60), r = Math.round(s%60);
+  $('#rtEst').innerHTML = `<b>Estimated runtime</b> ~ ${m>0?m+' min ':''}${r} s &nbsp;|&nbsp; `
+    + `SDDP work scales with iterations x K (${it} x ${K} = ${(it*K).toLocaleString()} stage solves per model), `
+    + `Monte-Carlo with paths (${mc.toLocaleString()} x 4 models). There is no hard cap - long runs simply take longer.`;
+}
+['iter','clust','mc','boot'].forEach(k=>{
+  const i=$('#i-'+k); if(i) i.oninput=()=>{$('#v-'+k).textContent=i.value; est();};
+});
+est();
+
+async function loadAll(){
+  try{
+    R = await (await fetch('/api/results')).json();
+    if(R.error){ $('#runinfo').textContent='no results yet - run the pipeline'; return; }
+    render();
+  }catch(e){ $('#runinfo').textContent='could not load results'; }
+  try{ SW = await (await fetch('/api/sweep')).json(); renderSweep(); }catch(e){}
+  try{
+    const man = await (await fetch('/api/manifest')).json();
+    renderDownloads(man);
+  }catch(e){}
+}
+
+function render(){
+  const W4=R.wp4, M=W4.models;
+  $('#p-source').textContent = R.source || 'unknown source';
+  $('#runinfo').textContent = `${R.reservoir||''} | runtime ${R.runtime_s}s | K=${R.wp3.n_scenarios} scenarios`;
+
+  // KPIs
+  const vssGreedy = M.MD0 ? (M.MD0.mean_cost-M.MS.mean_cost)/M.MD0.mean_cost*100 : null;
+  $('#kpis').innerHTML = `
+    <div class="kpi g"><div class="kl">VSS vs greedy</div><div class="kv">${fmt(vssGreedy,1)}%</div><div class="ks">M-S vs M-D0 baseline</div></div>
+    <div class="kpi b"><div class="kl">VSS vs deterministic</div><div class="kv">${fmt(W4.VSS_pct,1)}%</div><div class="ks">M-S vs M-D (Plan4RES)</div></div>
+    <div class="kpi ${W4.P90_saving_pct>=0?'g':'r'}"><div class="kl">P90 tail saving</div><div class="kv">${fmt(W4.P90_saving_pct,1)}%</div><div class="ks">risk reduction</div></div>
+    <div class="kpi w"><div class="kl">Wavelet A_J energy</div><div class="kv">${fmt(R.wp2.AJ_energy_pct,1)}%</div><div class="ks">J*=${R.wp2.J_optimal}</div></div>
+    <div class="kpi b"><div class="kl">Scenario ES gain</div><div class="kv">${fmt(R.wp3.es_improvement,1)}%</div><div class="ks">vs i.i.d.</div></div>
+    <div class="kpi ${R.wp2.fourier_R2<0.5?'w':'g'}"><div class="kl">Fourier R2</div><div class="kv">${fmt(R.wp2.fourier_R2,2)}</div><div class="ks">seasonal predictability</div></div>`;
+
+  const names={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D Plan4RES',MD0:'M-D0 greedy'};
+  const ks=['MS','MS0','MD','MD0'].filter(k=>M[k]);
+  mk('ovCost',{type:'bar',data:{labels:ks.map(k=>names[k]),datasets:[
+    {label:'Mean',data:ks.map(k=>M[k].mean_cost),backgroundColor:'#1D7A5A'},
+    {label:'P90',data:ks.map(k=>M[k].p90_cost),backgroundColor:'#2a6fb0'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+      scales:{y:{title:{display:true,text:'annual cost'},beginAtZero:true},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  mk('ovClim',{type:'bar',data:{labels:mo,datasets:[{label:'GWh/month',data:R.monthly_climatology,backgroundColor:'#2a6fb0'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'GWh'},beginAtZero:true},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // comparison
+  const tb=$('#cmpTab tbody'); tb.innerHTML='';
+  const cms=M.MS.mean_cost;
+  ks.forEach(k=>{
+    const d=M[k], vs = k==='MS' ? '-' : ((d.mean_cost-cms)/cms*100).toFixed(1)+'%';
+    tb.innerHTML+=`<tr class="${k==='MS'?'hl':''}"><td>${names[k]}</td><td class="num">${fmt(d.mean_cost,0)}</td>
+      <td class="num">${fmt(d.p90_cost,0)}</td><td class="num">${fmt(d.deficit,1)}</td><td class="num">${vs}</td></tr>`;
+  });
+  mk('cmpChart',{type:'bar',data:{labels:ks.map(k=>names[k]),datasets:[
+    {label:'Mean cost',data:ks.map(k=>M[k].mean_cost),backgroundColor:'#1D7A5A'},
+    {label:'P90 cost',data:ks.map(k=>M[k].p90_cost),backgroundColor:'#2a6fb0'},
+    {label:'Deficit (GWh)',data:ks.map(k=>M[k].deficit),backgroundColor:'#B26A00',yAxisID:'y1'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+      scales:{y:{title:{display:true,text:'cost'},beginAtZero:true},
+              y1:{position:'right',title:{display:true,text:'deficit GWh'},grid:{display:false}},
+              x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  // scenarios
+  const ds=R.wp3.scenarios.map((s,i)=>({label:`S${i+1} ${R.wp3.types[i]}`,data:s,borderColor:PAL[i%PAL.length],
+    backgroundColor:'transparent',borderWidth:1.4,tension:.32,pointRadius:0}));
+  ds.push({label:'deterministic mean (Plan4RES)',data:R.seasonal_profile,borderColor:'#16202c',
+    borderDash:[7,4],borderWidth:2.4,tension:.32,pointRadius:0});
+  mk('scChart',{type:'line',data:{labels:mo,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:9}}}},
+      scales:{y:{title:{display:true,text:'inflow GWh/month'},beginAtZero:true},x:{grid:{display:false}}}}});
+  $('#scNote').textContent=`K=${R.wp3.n_scenarios} scenarios from block-bootstrap (b=4). `+
+    `KS D=${R.wp3.ks_stat}, ACF max err=${R.wp3.acf_max_err}, energy-score gain ${R.wp3.es_improvement}% vs i.i.d.`;
+  const st=$('#scTab tbody'); st.innerHTML='';
+  R.wp3.weights.forEach((w,i)=>{
+    st.innerHTML+=`<tr><td>${i+1}</td><td><span class="badge ${R.wp3.types[i]==='DRY'?'br':R.wp3.types[i]==='WET'?'bb':'bn'}">${R.wp3.types[i]}</span></td>
+      <td class="num">${fmt(w,3)}</td><td class="num">${fmt(R.wp3.annual_volumes[i],0)}</td></tr>`;
+  });
+
+  // wavelet
+  const es=R.wp2.energy_spectrum||[];
+  mk('wvChart',{type:'bar',data:{labels:es.map((_,i)=>i===0?'A_J':'D'+i),
+    datasets:[{label:'% energy',data:es,backgroundColor:es.map((_,i)=>i===0?'#1D7A5A':'#2a6fb0')}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'% of signal energy'},beginAtZero:true},x:{grid:{display:false}}}}});
+  $('#wvKpi').innerHTML=`
+    <div class="kpi g"><div class="kl">J* levels</div><div class="kv">${R.wp2.J_optimal}</div><div class="ks">auto-selected</div></div>
+    <div class="kpi b"><div class="kl">A_J energy</div><div class="kv">${fmt(R.wp2.AJ_energy_pct,1)}%</div><div class="ks">seasonal share</div></div>
+    <div class="kpi w"><div class="kl">Residual sigma</div><div class="kv">${fmt(R.wp2.residual_std,1)}</div><div class="ks">GWh/month</div></div>
+    <div class="kpi ${R.wp2.fourier_R2<0.5?'w':'b'}"><div class="kl">Fourier R2</div><div class="kv">${fmt(R.wp2.fourier_R2,3)}</div><div class="ks">K=5 harmonics</div></div>`;
+  $('#m-wp2').textContent=`J*=${R.wp2.J_optimal}, A_J holds ${R.wp2.AJ_energy_pct}% of energy, residual sigma=${R.wp2.residual_std} GWh/month.`;
+  $('#m-four').textContent=`K=5 harmonics, R2=${R.wp2.fourier_R2}. A low R2 is itself informative: it shows the inflow is genuinely stochastic, not a deterministic seasonal curve.`;
+  $('#m-wp3').textContent=`${R.wp3.n_scenarios} representative scenarios from N bootstrap cycles with block size b=4 months (preserves autocorrelation), reduced by K-means. Validation: KS D=${R.wp3.ks_stat}, ACF max error=${R.wp3.acf_max_err}, energy-score improvement ${R.wp3.es_improvement}% over i.i.d. sampling.`;
+
+  // plan4res reference
+  if(R.plan4res_reference){
+    const P=R.plan4res_reference;
+    let h=`<p class="muted">${P.n_timesteps} timesteps, ${P.n_cuts} cuts.</p>
+      <table><thead><tr><th class="num">Timestep</th><th class="num">a0</th><th class="num">a1</th>
+      <th class="num">a2</th><th class="num">b</th></tr></thead><tbody>`;
+    P.sample.forEach(r=>{h+=`<tr><td class="num">${r.Timestep}</td><td class="num">${fmt(r.a_0,3)}</td>
+      <td class="num">${fmt(r.a_1,3)}</td><td class="num">${fmt(r.a_2,3)}</td><td class="num">${fmt(r.b,0)}</td></tr>`;});
+    $('#p4rref').innerHTML=h+'</tbody></table>';
+  }
+
+  renderCT();
+}
+
+function renderCT(){
+  const C=R.wp4b_continuous;
+  if(!C){ $('#ctKpi').innerHTML='<div class="alert aw">Continuous-time block not present in this run.</div>'; return; }
+  $('#ctKpi').innerHTML=`
+    <div class="kpi ${C.sde.feller_ok?'g':'r'}"><div class="kl">Feller ratio</div><div class="kv">${fmt(C.sde.feller,1)}</div><div class="ks">${C.sde.feller_ok?'Q&gt;0 guaranteed':'may hit zero'}</div></div>
+    <div class="kpi b"><div class="kl">Euler-Maruyama</div><div class="kv">${fmt(C.convergence.em_slope,2)}</div><div class="ks">theory 0.5</div></div>
+    <div class="kpi g"><div class="kl">Milstein</div><div class="kv">${fmt(C.convergence.milstein_slope,2)}</div><div class="ks">theory 1.0</div></div>
+    <div class="kpi ${C.wavelet_galerkin&&C.wavelet_galerkin.slope!=null?'b':'w'}"><div class="kl">Wavelet-Galerkin</div>
+      <div class="kv">${C.wavelet_galerkin&&C.wavelet_galerkin.slope!=null?'M^'+fmt(C.wavelet_galerkin.slope,2):'n/a'}</div>
+      <div class="ks">theory M^-1</div></div>`;
+
+  const sd=$('#sdeTab tbody'); sd.innerHTML='';
+  [['sigma type',C.sde.sigma_type],['kappa (mean reversion, /yr)',C.sde.kappa],
+   ['sigma0 (diffusion)',C.sde.sigma0],['Fourier R2',C.sde.fourier_R2],
+   ['KS p-value',C.sde.ks_p],['Feller 2*kappa*theta/sigma0^2',C.sde.feller]
+  ].forEach(r=>{sd.innerHTML+=`<tr><td>${r[0]}</td><td class="num">${r[1]}</td></tr>`;});
+  $('#sdeNote').innerHTML = C.sde.gaussian_innovations
+    ? `<div class="alert as">Innovations pass the Gaussian test (p=${C.sde.ks_p}).</div>`
+    : `<div class="alert aw"><b>Heavy-tailed innovations</b> (KS p=${C.sde.ks_p}). Real Sahelian inflows are
+       not Gaussian - droughts and floods produce fat tails. This is a finding, and it is precisely
+       what motivates the CIR treatment over a Gaussian assumption.</div>`;
+
+  if(C.wavelet_galerkin && C.wavelet_galerkin.table){
+    const wt=$('#wgTab tbody'); wt.innerHTML='';
+    C.wavelet_galerkin.table.forEach(r=>{
+      wt.innerHTML+=`<tr><td class="num">${r.J}</td><td class="num">${r.M}</td>
+        <td class="num">${Number(r.L2_error).toExponential(3)}</td></tr>`;});
+    $('#wgNote').innerHTML=`<div class="alert as">Empirical rate <b>O(M^${fmt(C.wavelet_galerkin.slope,2)})</b>
+      against the corrected finite-difference reference; theory is O(M^-1) for value functions in H1.
+      The value function has kinks in S where the release regime switches, so a smoother basis
+      cannot do better - this is why the wavelet basis is the right choice.</div>`;
+  } else { $('#wgNote').innerHTML='<div class="alert aw">Wavelet-Galerkin not run in this configuration.</div>'; }
+
+  if(C.hjb && C.hjb.storage_grid){
+    mk('hjbChart',{type:'line',data:{labels:C.hjb.storage_grid,datasets:[
+      {label:'value function V(S)',data:C.hjb.value_at_t0,borderColor:'#1D7A5A',backgroundColor:'transparent',
+       borderWidth:2.2,tension:.25,pointRadius:0,yAxisID:'y'},
+      {label:'optimal release u*(S)',data:C.hjb.policy_at_t0,borderColor:'#B26A00',backgroundColor:'transparent',
+       borderWidth:2,borderDash:[6,4],tension:.25,pointRadius:0,yAxisID:'y1'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:10}}}},
+        scales:{y:{position:'left',title:{display:true,text:'V(S) cost-to-go'}},
+                y1:{position:'right',title:{display:true,text:'release GWh'},grid:{display:false}},
+                x:{title:{display:true,text:'storage S (GWh)'},grid:{display:false}}}}});
+    $('#hjbNote').innerHTML=`<div class="alert ${C.hjb.stable?'as':'aw'}">Solver stable: <b>${C.hjb.stable}</b>.
+      U-shaped value function: <b>${C.hjb.u_shaped}</b> - high at empty (V=${fmt(C.hjb.V_at_empty,0)}, deficit risk),
+      minimum V=${fmt(C.hjb.V_at_min,0)} at S=${fmt(C.hjb.V_min_at_storage,0)} GWh, rising to
+      V=${fmt(C.hjb.V_at_full,0)} near full (spill penalty). The U-shape is the physically correct
+      signature: too little water causes deficits, too much causes spill.</div>`;
+  }
+}
+
+function renderSweep(){
+  if(!SW || !SW.sweep) return;
+  const s=SW.sweep;
+  mk('sweepChart',{type:'line',data:{labels:s.map(r=>r.frac+'x'),datasets:[
+    {label:'vs greedy (M-D0)',data:s.map(r=>r.vss_vs_greedy),borderColor:'#2a6fb0',backgroundColor:'transparent',
+     borderWidth:2.4,tension:.3,pointRadius:3.5,pointBackgroundColor:'#2a6fb0'},
+    {label:'vs deterministic (M-D)',data:s.map(r=>r.vss),borderColor:'#A32B2B',backgroundColor:'transparent',
+     borderWidth:2.2,borderDash:[6,4],tension:.3,pointRadius:3.5,pointStyle:'rect',pointBackgroundColor:'#A32B2B'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'VSS (% cost reduction)'}},
+              x:{title:{display:true,text:'usable storage (x mean monthly inflow)'},grid:{display:false}}}}});
+  const pk=s.reduce((a,b)=>b.vss>a.vss?b:a);
+  const pg=s.reduce((a,b)=>b.vss_vs_greedy>a.vss_vs_greedy?b:a);
+  $('#sweepNote').innerHTML=`<div class="alert ai">Against the greedy baseline the stochastic policy
+    saves ${fmt(s[0].vss_vs_greedy,1)}% to ${fmt(pg.vss_vs_greedy,1)}%, growing with storage.
+    Against the deterministic water-value policy the gain peaks at ${fmt(pk.vss,1)}% at
+    ${pk.frac}x mean monthly inflow. When the reservoir is frequently binding the release is forced by
+    physical constraints, leaving little room for the water value to exploit; stochastic value emerges
+    once storage is large enough for genuine multi-period hedging.</div>`;
+}
+
+const DESC={
+ 'inflows_omvs.csv':'INPUT - real Manantali monthly inflow energy (1961-2015)',
+ 'plan4res_storage.csv':'INPUT - Plan4RES SS_SeasonalStorage.csv (reservoir parameters)',
+ 'plan4res_bellman.csv':'INPUT/REF - Plan4RES bellmanvalues.csv (their method output)',
+ 'plan4res_zonevalues.csv':'INPUT - Plan4RES ZV_ZoneValues.csv (demand, VOLL)',
+ 'plan4res_inflow.csv':'INPUT - Plan4RES hourly hydro run-of-river series',
+ 'results.json':'OUTPUT - full results (all WPs, live)',
+ 'results.csv':'OUTPUT - model comparison table',
+ 'sweep.json':'OUTPUT - storage-sensitivity curve',
+};
+function renderDownloads(man){
+  const tb=$('#dlTab tbody'); tb.innerHTML='';
+  man.forEach(f=>{
+    const kb=f.size>0?(f.size/1024).toFixed(1)+' KB':'-';
+    tb.innerHTML+=`<tr><td><code>${f.name}</code></td><td>${DESC[f.name]||''}</td>
+      <td class="num">${kb}</td><td><a class="btn sec" style="padding:4px 10px;text-decoration:none"
+      href="/api/download/${f.name}" ${f.exists?'':'disabled'}>Download</a></td></tr>`;
+  });
+}
+
+$('#btn-refresh').onclick=loadAll;
+$('#btn-run').onclick=async()=>{
+  const p={source:$('#i-source').value,n_iter:+$('#i-iter').value,n_clusters:+$('#i-clust').value,
+           n_mc:+$('#i-mc').value,n_bootstrap:+$('#i-boot').value};
+  $('#btn-run').disabled=true;
+  $('#btn-run').innerHTML='<span class="spin"></span> running...';
+  $('#runAlert').innerHTML='<div class="alert ai">Pipeline started on the server. This takes roughly 30-90 s depending on parameters.</div>';
+  await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  poll();
+};
+async function poll(){
+  const s=await (await fetch('/api/status')).json();
+  $('#runlog').textContent=(s.log||[]).join('\n')||'starting...';
+  $('#runlog').scrollTop=$('#runlog').scrollHeight;
+  if(s.running){ setTimeout(poll,900); return; }
+  $('#btn-run').disabled=false; $('#btn-run').textContent='Run pipeline';
+  $('#runAlert').innerHTML = s.rc===0
+    ? `<div class="alert as">Run finished in ${s.elapsed}s. All panels refreshed from the new output.</div>`
+    : `<div class="alert aw">Run exited with code ${s.rc}. See the log below.</div>`;
+  if(s.rc===0) loadAll();
+}
+loadAll();
+</script>
+</body>
+</html>

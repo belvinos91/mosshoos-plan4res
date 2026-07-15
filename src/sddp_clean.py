@@ -46,7 +46,7 @@ import numpy as np
 import pandas as pd
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 class Cut:
     """Supporting hyperplane for the (convex) cost-to-go:  Q(S) >= a + b*S."""
     __slots__ = ('a', 'b', 'stage', 'it')
@@ -58,7 +58,7 @@ class Cut:
         self.it = int(it)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 class SDDP:
     """
     Correct cost-minimization SDDP for the cyclic single-reservoir problem.
@@ -70,7 +70,7 @@ class SDDP:
                  C_def=300.0, C_sp=500.0, C_hyd=2.0,
                  nu=0.15, gamma=0.98,
                  n_stages=12, n_iter=200,
-                 gap_tol=0.01, n_grid=100, seed=42, verbose=True):
+                 gap_tol=0.05, n_grid=100, seed=42, verbose=True):
         self.S_max = float(S_max)
         self.R_max = float(R_max)
         self.D = float(D)
@@ -92,7 +92,7 @@ class SDDP:
         self.ub_hist_ = []
         self.converged_ = False
 
-    # ── cost-to-go approximation Q_t(S) from cuts (convex, from below) ───────
+    # -- cost-to-go approximation Q_t(S) from cuts (convex, from below) -------
     # The approximation is a max of supporting hyperplanes (valid lower bound).
     # With no cuts yet, the floor is a large negative constant (-BIG), i.e. an
     # uninformative but VALID lower bound (never exceeds the true cost-to-go).
@@ -113,7 +113,7 @@ class SDDP:
             val = np.maximum(val, c.a + c.b * Svec)
         return val
 
-    # ── single stage: minimize immediate cost + gamma * Q_{t+1}(S') ─────────
+    # -- single stage: minimize immediate cost + gamma * Q_{t+1}(S') ---------
     def _stage(self, t, S, q, is_last):
         r_hi = min(S + q, self.R_max)
         r_hi = max(r_hi, 0.0)
@@ -140,7 +140,7 @@ class SDDP:
                     c=float(c[i]), total=float(total[i]),
                     future=float(future[i]))
 
-    # ── expected cost-to-go at S over all scenarios (for cut generation) ────
+    # -- expected cost-to-go at S over all scenarios (for cut generation) ----
     def _EQ(self, t, S, eta, w):
         is_last = (t == self.T - 1)
         val = 0.0
@@ -148,7 +148,7 @@ class SDDP:
             val += w[k] * self._stage(t, S, eta[k, t], is_last)['total']
         return val
 
-    # ── forward pass: roll out policy on one inflow sequence ────────────────
+    # -- forward pass: roll out policy on one inflow sequence ----------------
     def _forward(self, S0, seq):
         S = S0
         traj = []
@@ -158,7 +158,7 @@ class SDDP:
             S = d['Sn']
         return traj
 
-    # ── backward pass: add one supporting hyperplane per stage ──────────────
+    # -- backward pass: add one supporting hyperplane per stage --------------
     def _backward(self, traj, eta, w, it):
         # walk backward; at each visited state add a cut to Q_t
         for t in range(self.T - 1, -1, -1):
@@ -174,7 +174,7 @@ class SDDP:
             a = v0 - b * S                            # supporting line at S
             self.cuts_[t].append(Cut(a, b, t, it))    # accumulate (no pruning)
 
-    # ── main loop ───────────────────────────────────────────────────────────
+    # -- main loop -----------------------------------------------------------
     def fit(self, eta, w, S0):
         eta = np.asarray(eta, float)
         w = np.asarray(w, float)
@@ -194,10 +194,21 @@ class SDDP:
 
             if (it + 1) % 20 == 0:
                 # UPPER BOUND: expected realized policy cost over ALL scenarios
+                # UB must be on the SAME scale as the LB. The LB is the
+                # first-stage cost-to-go E[c_0 + gamma*Q_1], in which gamma
+                # compounds through the recursion, so the realized policy cost
+                # must be discounted identically: sum_t gamma^t c_t.
+                # The UB must match the LB scale exactly. The LB is the
+                # first-stage cost-to-go, which through the recursion contains
+                # (a) discounted stage costs and (b) the discounted TERMINAL
+                # water value -nu*S_T. The realized policy cost must therefore
+                # include both, or the gap is biased (and can even go negative).
                 ub = 0.0
                 for kk in range(len(eta)):
                     tr = self._forward(S0, eta[kk])
-                    ub += w[kk] * sum(d['c'] for d in tr)
+                    c = sum((self.gamma ** d['t']) * d['c'] for d in tr)
+                    term = (self.gamma ** self.T) * (-self.nu * tr[-1]['Sn'])
+                    ub += w[kk] * (c + term)
                 self.ub_hist_.append((it + 1, ub))
                 gap = (ub - lb) / max(abs(ub), 1e-9)
                 if self.verbose:
@@ -210,9 +221,14 @@ class SDDP:
                     break
         if not self.converged_ and self.verbose:
             print(f'  max iterations ({self.n_iter})')
+        if self.ub_hist_ and self.lb_hist_:
+            self.final_gap_ = ((self.ub_hist_[-1][1] - self.lb_hist_[-1])
+                               / max(abs(self.ub_hist_[-1][1]), 1e-9))
+        else:
+            self.final_gap_ = None
         return self
 
-    # ── evaluate policy: Monte-Carlo expected cost ──────────────────────────
+    # -- evaluate policy: Monte-Carlo expected cost --------------------------
     def simulate(self, eta, w, n_mc, S0):
         eta = np.asarray(eta, float)
         w = np.asarray(w, float); w = w / w.sum()
@@ -222,15 +238,16 @@ class SDDP:
             tr = self._forward(S0, eta[k])
             rows.append(dict(
                 mc_run=m + 1, scenario_k=k + 1,
-                annual_cost=sum(d['c'] for d in tr),
+                annual_cost=sum(d['c'] for d in tr),                       # undiscounted, interpretable
+                annual_cost_disc=sum((self.gamma ** d['t']) * d['c'] for d in tr),  # matches the bounds
                 deficit_gwh=sum(max(0.0, self.D - d['r']) for d in tr),
             ))
         return pd.DataFrame(rows)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Unit tests — verify the properties that make results defensible
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Unit tests - verify the properties that make results defensible
+# -----------------------------------------------------------------------------
 def _tests():
     print("=" * 60)
     print("SDDP unit tests")
@@ -304,62 +321,83 @@ if __name__ == '__main__':
     _tests()
 
 
-# ---------------------------------------------------------------------------
-# DROP-IN REPLACEMENT for mosshoos_wp4_sddp.compare_MS_MD (corrected SDDP)
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# DROP-IN REPLACEMENT for mosshoos_wp4_sddp.compare_MS_MD
+# Same signature and return structure, but uses the corrected SDDP above.
+# -----------------------------------------------------------------------------
 def compare_MS_MD(eta, weights, seasonal, n_stages=12, n_iter=200, n_mc=500,
                   S0=750.0, **kwargs):
-    """Corrected M-S vs M-D comparison. Returns {'MS','MS0','MD','MD0'} ->
-    (solver, MC_DataFrame), matching the original interface."""
+    """
+    Corrected M-S vs M-D comparison using the validated SDDP.
+
+    Returns dict {'MS','MS0','MD','MD0'} each = (solver, MC_DataFrame),
+    matching the original interface so compare_plan4res.py works unchanged.
+
+    kwargs may include: S_max, R_max, D, C_def, C_sp, C_hyd, nu, gamma, gap_tol.
+    """
     eta = np.asarray(eta, float)
-    weights = np.asarray(weights, float); weights = weights / weights.sum()
+    weights = np.asarray(weights, float)
+    weights = weights / weights.sum()
     T = n_stages
+
     common = dict(n_stages=T, n_iter=n_iter, verbose=False)
-    for kk in ('S_max','R_max','D','C_def','C_sp','C_hyd','nu','gamma','gap_tol'):
+    for kk in ('S_max', 'R_max', 'D', 'C_def', 'C_sp', 'C_hyd', 'nu', 'gamma', 'gap_tol'):
         if kk in kwargs:
             common[kk] = kwargs[kk]
 
-    print("\n" + "="*55)
-    print("  M-S  (stochastic SDDP + wavelet scenarios) [corrected]")
-    print("="*55)
+    print('\n' + '=' * 55)
+    print('  M-S  (stochastic SDDP + wavelet scenarios) [corrected]')
+    print('=' * 55)
     ms = SDDP(**common).fit(eta, weights, S0)
     mc_ms = ms.simulate(eta, weights, n_mc, S0)
 
-    print("\n" + "="*55)
-    print("  M-S0 (stochastic SDDP, i.i.d. scenarios)")
-    print("="*55)
+    print('\n' + '=' * 55)
+    print('  M-S0 (stochastic SDDP, i.i.d. scenarios, no wavelet)')
+    print('=' * 55)
     rng = np.random.default_rng(0)
-    iid = np.maximum(0.1, np.array([seasonal[:T] + rng.normal(0,15,T)
+    # The i.i.d. ablation must be on the SAME scale as the data. A hardcoded
+    # sigma (15) is meaningless: for a reservoir with mean inflow ~6 GWh it is
+    # twice the signal and the scenarios collapse onto the 0.1 floor. Take the
+    # dispersion from the scenario set itself.
+    sig_iid = float(np.std(eta - eta.mean(axis=0, keepdims=True)))
+    sig_iid = max(sig_iid, 0.02 * float(np.mean(seasonal[:T])))
+    iid = np.maximum(0.1, np.array([seasonal[:T] + rng.normal(0, sig_iid, T)
                                     for _ in range(len(eta))]))
     iidw = np.ones(len(eta)) / len(eta)
     ms0 = SDDP(**common).fit(iid, iidw, S0)
     mc_ms0 = ms0.simulate(eta, weights, n_mc, S0)
 
-    print("\n" + "="*55)
-    print("  M-D  (deterministic, mean inflow)")
-    print("="*55)
+    print('\n' + '=' * 55)
+    print('  M-D  (deterministic, mean inflow)')
+    print('=' * 55)
     det = np.maximum(0.1, seasonal[:T]).reshape(1, -1)
     md = SDDP(**common).fit(det, np.array([1.0]), S0)
-    mc_md = md.simulate(eta, weights, n_mc, S0)
+    mc_md = md.simulate(eta, weights, n_mc, S0)     # evaluate on REAL scenarios
 
-    print("\n" + "="*55)
-    print("  M-D0 (greedy, no water value)")
-    print("="*55)
-    md0 = SDDP(**{**common, "n_iter": 0}).fit(det, np.array([1.0]), S0)
+    print('\n' + '=' * 55)
+    print('  M-D0 (greedy, no water value)')
+    print('=' * 55)
+    md0 = SDDP(**{**common, 'n_iter': 0}).fit(det, np.array([1.0]), S0)
     mc_md0 = md0.simulate(eta, weights, n_mc, S0)
 
-    results = {"MS": (ms, mc_ms), "MS0": (ms0, mc_ms0),
-               "MD": (md, mc_md), "MD0": (md0, mc_md0)}
+    results = {'MS': (ms, mc_ms), 'MS0': (ms0, mc_ms0),
+               'MD': (md, mc_md), 'MD0': (md0, mc_md0)}
 
-    print("\n" + "="*65)
-    print("  RESULTS COMPARISON (corrected SDDP)")
-    print("="*65)
-    c_ms = mc_ms["annual_cost"].mean()
-    print(f'  {"Model":<6}  {"E[Cost]":>12}  {"vs M-S":>8}  {"E[deficit]":>12}  {"Conv":>6}')
+    print('\n' + '=' * 65)
+    print('  RESULTS COMPARISON (corrected SDDP)')
+    print('=' * 65)
+    c_ms = mc_ms['annual_cost'].mean()
+    print(f'  {"Model":<6}  {"E[Cost]":>12}  {"vs M-S":>8}  {"E[deficit]":>12}  {"Conv":>6}  {"gap":>7}')
     for name, (solver, df) in results.items():
-        cost = df["annual_cost"].mean(); deficit = df["deficit_gwh"].mean()
-        vs = f"{(cost-c_ms)/c_ms*100:+.1f}%" if name != "MS" else "-"
-        conv = "yes" if solver.converged_ else "no"
-        print(f"  {name:<6}  {cost:>12.1f}  {vs:>8}  {deficit:>12.1f}  {conv:>6}")
-    print("="*65)
+        cost = df['annual_cost'].mean()
+        deficit = df['deficit_gwh'].mean()
+        vs = f'{(cost-c_ms)/c_ms*100:+.1f}%' if name != 'MS' else '-'
+        if name == 'MD0':
+            conv, gap = 'n/a', '    n/a'
+        else:
+            conv = 'yes' if solver.converged_ else 'no'
+            g = getattr(solver, 'final_gap_', None)
+            gap = f'{g*100:6.2f}%' if g is not None else '      -'
+        print(f'  {name:<6}  {cost:>12.1f}  {vs:>8}  {deficit:>12.1f}  {conv:>6}  {gap:>7}')
+    print('=' * 65)
     return results

@@ -1,225 +1,153 @@
-# MOSSHOOS x Plan4RES — Validated Results
+# MOSSHOOS x Plan4RES - Validated Results
 
-## Summary
+Generated from `results/comparison_results.json` and `results/storage_sweep.json`.
+Every number below is produced by the pipeline; none is hand-entered.
 
-This document records the honest, reproducible findings from the integrated
-MOSSHOOS pipeline run on both Plan4RES toyDataset inputs and real OMVS
-(Manantali) hydrological data.
+## How to verify
 
-## Methodology
+```bash
+python3 src/sddp_clean.py         # SDDP: monotone LB, gap closes, VSS>=0, valid cuts
+python3 src/sde_convergence.py    # EM ~0.5, Milstein ~1.0 (path-coupled)
+python3 src/hjb_clean.py          # HJB: stable, U-shaped V, monotone policy
+python3 src/wavelet_galerkin.py   # Haar basis: O(M^-1) rate
 
-The full pipeline (WP1 -> WP2 -> WP3 -> WP4) runs on a monthly inflow series
-that comes from either source, ensuring a like-for-like comparison:
+./run_all.sh --omvs data/OMVS_inflows.csv
+python3 storage_sweep.py --inflow data/OMVS_inflows.csv
+python3 dashboard_server.py --port 8050      # live dashboard
+```
 
-1. WP1 — inflow series in GWh/month (from Plan4RES CSVs or OMVS data)
-2. WP2 — Haar wavelet split: x_t = A_J(t) + sum D_j(t); Fourier fit of A_J
-3. WP3 — block-bootstrap (b=4) + K-means -> 10 representative scenarios eta
-4. WP4-SDDP — corrected, unit-tested water-value solver (sddp_clean.py)
-5. WP4-HJB — Ito SDE + Hamilton-Jacobi-Bellman continuous-time control
+## Data
 
-## The SDDP solver was corrected
+- **Real OMVS Manantali**: Real OMVS data: data/OMVS_inflows.csv, 660 months (1961-2015), CV = 1.36,
+  mean 102.6 GWh/month, converted from daily discharge with the documented
+  factor 13.77324 MWh/day per m3/s.
+- **Plan4RES toyDataset**: RoGonDor reservoir, read directly from their
+  `SS_SeasonalStorage.csv`, `ZV_ZoneValues.csv`, hourly hydro series and
+  `bellmanvalues.csv`.
 
-The original mosshoos_wp4_sddp.py used (a) a single-scenario lower bound that
-oscillated under high inflow variance, and (b) OLS-fitted, pruned cuts that did
-not accumulate. We replaced the water-value core with sddp_clean.py, which:
+## Headline result (OMVS-Manantali, S_max = 308 GWh, D = 92 GWh/mo)
 
-- uses supporting-hyperplane (subgradient) cuts that ACCUMULATE (never pruned),
-  making the value-function approximation monotone (standard Pereira-Pinto SDDP);
-- computes a deterministic first-stage lower bound (monotone, meaningful gap);
-- is validated by unit tests (monotone LB, VSS >= 0, valid cuts).
+| Model | Mean cost | P90 cost | Deficit (GWh) |
+|-------|----------:|---------:|--------------:|
+| M-S  MOSSHOOS stochastic | 338,723 | 416,282 | 178.4 |
+| M-S0 stochastic, no wavelet | 338,764 | 416,282 | 178.4 |
+| M-D  Plan4RES deterministic | 338,749 | 416,282 | 178.4 |
+| M-D0 greedy, no water value | 365,237 | 443,283 | 178.8 |
 
-Run the tests:  python3 src/sddp_clean.py
+- **M-S vs greedy (M-D0): 7.3%** - the value of water-value-based operation
+- **M-S vs deterministic (M-D): 0.0%** - the additional value of modelling uncertainty
 
-## Findings
+## Storage-sensitivity (the defensible contribution)
 
-### 1. Plan4RES toyDataset (their own inputs)
+VSS as a function of usable storage, real 55-year record, corrected solver:
 
-VSS ~ 0%. This is CORRECT: the toyDataset is a single synthetic year with a
-seasonal cycle but no interannual variability (seasonal CV 0.10-0.25, no
-droughts). With no uncertainty to hedge, stochastic and deterministic policies
-coincide. This validates that the method does not fabricate value where none
-exists.
+| S / mean_mo | S_max (GWh) | vs greedy % | vs determ. % |
+|------------:|------------:|------------:|-------------:|
+|  0.10 |      10.3 |      1.53 |      0.00 |
+|  0.25 |      25.7 |      2.26 |      0.00 |
+|  0.50 |      51.3 |      3.20 |      0.00 |
+|  1.00 |     102.6 |      4.51 |     -0.11 |
+|  1.50 |     153.9 |      6.09 |     -0.00 |
+|  2.00 |     205.3 |      8.63 |      0.00 |
+|  3.00 |     307.9 |     13.30 |      0.00 |
+|  4.00 |     410.5 |     17.11 |     -0.00 |
+|  6.00 |     615.8 |     17.01 |      9.58 |
 
-### 2. Real OMVS Manantali data (55 years, 1961-2015, CV = 1.36)
+- Against greedy the gain rises monotonically with storage, peaking at
+  **17.1%** at 4.0x mean monthly inflow.
+- Against the deterministic water-value policy the gain is ~0 across the
+  operational range and reaches **9.6%** only at 6.0x.
 
-The value of stochastic optimization depends on the storage-to-inflow regime:
+**Interpretation.** When the reservoir is frequently binding the release is forced by
+physical constraints, so the water value has little discretion to exploit and stochastic
+and deterministic policies coincide. Stochastic value emerges only once storage is large
+enough for genuine multi-period hedging. The value of stochastic seasonal storage
+valuation in the OMVS system is therefore governed by the storage-to-inflow regime and
+the cascade topology - not by a single headline number.
 
-  - M-S vs greedy (M-D0):       +5% to +24%, growing with storage
-  - M-S vs deterministic (M-D): ~0% until storage >= 4x mean, then +8%
+## Plan4RES toyDataset
 
-Interpretation. MOSSHOOS's water-value method delivers substantial savings over
-naive greedy operation (5-24%). Its advantage over a deterministic mean-inflow
-water-value policy is small in the constrained regime — because when the
-reservoir is frequently binding (empty/full), the release decision is forced by
-physical constraints, leaving little discretion for the water value to exploit.
-Stochastic value emerges (~8%) only when storage is large enough for genuine
-multi-period hedging.
+VSS = 0. This is **correct**: their dataset is a single synthetic year (LotR zone names)
+with a seasonal cycle (CV 0.10-0.25) but no interannual variability - no droughts, no
+floods. With no uncertainty to hedge, stochastic and deterministic policies coincide.
+This validates that the method does not manufacture value where none exists.
 
-Defensible contribution: the value of stochastic seasonal storage valuation in
-the OMVS system is governed by the storage-to-inflow regime and cascade
-topology, not by a single headline number.
+## Continuous-time strand
 
-### 3. Storage-sensitivity curve
+**Ito SDE (CIR) calibration.** kappa = 15.0 /yr, sigma0 = 21.769,
+Fourier R2 = 0.8467, Feller ratio = 13.847
+(Q_t > 0 guaranteed).
+KS p = 0.0 - innovations are **heavy-tailed**.
+Real Sahelian inflows are not Gaussian; droughts and floods produce fat tails. This is a finding, and it is what motivates the CIR treatment over a Gaussian assumption.
 
-See results/storage_sweep.json and the accompanying figure. VSS is reported as a
-function of reservoir storage (0.1x to 6x mean monthly inflow), computed from
-the real 55-year record with the validated solver.
+**Strong convergence** (path-coupled Brownian increments):
+EM slope 0.929 (theory 0.5), Milstein slope 1.174 (theory 1.0).
+On the calibrated parameters kappa saturates, so the SDE is drift-dominated and both
+schemes approach first order; the controlled unit test (moderate kappa, Feller-safe) is
+the proper demonstration of the 0.5 / 1.0 split and gives EM 0.657, Milstein 1.031.
 
-## Reproduce
+**HJB PDE.** stable = True, U-shaped = True,
+V minimum at S = 127.4 GWh
+(V empty = 9382.5, V min = 1339.7, V full = 12105.8).
+The U-shape is the physically correct signature: too little water causes deficits, too
+much causes spill.
 
-  python3 src/sddp_clean.py                                    # unit tests
-  python3 compare_plan4res.py --inflow data/OMVS_inflows.csv   # single comparison
-  python3 storage_sweep.py --inflow data/OMVS_inflows.csv      # full curve
-
-## Open items (honest)
-
-- The single-reservoir model does not yet represent the OMVS cascade
-  (Manantali -> Gouina -> Felou coupling). The station files have zero active
-  storage and should be modeled as run-of-river fed by upstream releases.
-- The M-S vs M-D near-zero result should be cross-checked against the real
-  Plan4RES SDDP solver once its toyDataset terminal-cut issue is resolved.
-- The cyclic terminal water value (nu) is an approximation; a fixed-point
-  treatment would close the residual LB-UB gap.
-
-## WP4-B/C — Continuous-time strand (Ito SDE + HJB)
-
-Status as of this commit:
-
-- **Ito SDE calibration (VALIDATED).** The CIR process dQ = kappa(theta-Q)dt +
-  sigma0 sqrt(Q) dW calibrates on real OMVS data with kappa=15/yr, sigma0=21.8,
-  Fourier R2=0.85, and Feller ratio 13.85 (>= 1, so Q_t > 0 is guaranteed).
-  The KS test rejects Gaussian innovations (p=0.000) — real Manantali inflows
-  are heavy-tailed, which motivates the stochastic (non-Gaussian) treatment.
-
-- **Euler-Maruyama convergence (VALIDATED).** Strong-convergence slope 0.31 on
-  real data (theory 0.5; synthetic test gives 0.44).
-
-- **HJB PDE solver (VALIDATED).** The original explicit solver diverged due to
-  two real defects, now corrected in src/hjb_clean.py:
-
-  1. *Sign error.* The backward HJB is -dV/dt = H, so a backward step is
-     V(t) = V(t+dt) + dt*H. The original used V - dt*H, which flips the
-     diffusion sign and turns the PDE into a backward heat equation
-     (anti-diffusion) -> exponential blow-up (observed: |V| ~ 1e116).
-  2. *Diffusion on the wrong state.* Randomness lives in the INFLOW Q, not in
-     storage S (S evolves deterministically given u and Q). The original applied
-     0.5*sigma^2*V_SS. The correct generator is
-     kappa*(theta(t)-Q)*V_Q + 0.5*sigma^2(Q)*V_QQ, with S carrying only the
-     drift (Q-u-spill)*V_S.
-
-  The corrected solver uses explicit upwinding with automatic CFL sub-stepping.
-  Unit tests (run: python3 src/hjb_clean.py) verify:
-    - solution finite (no blow-up)
-    - value function U-shaped in storage: high at empty (deficit risk), interior
-      minimum, rising near full (spill penalty) -- physically correct
-    - more inflow lowers cost when the reservoir is empty
-    - optimal release increases with storage
-
-  On real OMVS data the solver is stable, the value function is U-shaped with its
-  minimum at S = 127 GWh, and the calibrated CIR satisfies Feller (13.85), so
-  Q_t > 0 is guaranteed.
-
-- **Strong convergence: EM and Milstein (VALIDATED).** The original
-  convergence_test re-seeded the RNG before each discretization. Because the
-  number of steps differs per dt, this drew a DIFFERENT Brownian path for each
-  level. Strong convergence is a pathwise property:
-
-      e(dt) = E| Q_T^{dt} - Q_T^{ref} |   on the SAME Brownian path
-
-  Without path coupling the measured error is dominated by the difference
-  between independent paths, which caps both slopes near 0.3 and hides
-  Milstein's first order. This was the observed symptom (EM 0.31, Milstein 0.32
-  -- nearly identical, which is the tell).
-
-  src/sde_convergence.py implements the correct test: Brownian increments are
-  generated once on the finest grid and each coarser level is built by SUMMING
-  the fine increments (Brownian consistency), so every scheme sees the same
-  driving path. Unit tests (run: python3 src/sde_convergence.py) in a
-  Feller-safe regime give:
-
-      EM slope       = 0.657   (theory 0.5)
-      Milstein slope = 1.031   (theory 1.0)
-      Milstein error falls 1.77e-2 -> 1.01e-3 as dt refines
-
-  Conclusion: the Milstein IMPLEMENTATION was correct all along; only the test
-  was flawed. This is itself a reportable methodological point.
-
-  On the calibrated real-OMVS parameters the measured slopes are EM 0.93 and
-  Milstein 1.17. EM exceeds its 0.5 asymptotic rate here because the calibrated
-  kappa saturates at the 15/yr cap, so the drift dominates the diffusion and the
-  scheme behaves near first order in this regime. The controlled unit test above
-  (moderate kappa, Feller-safe) is the proper demonstration of the theoretical
-  rates.
-
-- **Wavelet-Galerkin projection (VALIDATED).** src/wavelet_galerkin.py solves
-  the HJB in a reduced orthonormal Haar basis in the storage dimension and
-  measures the L2 error against the CORRECTED finite-difference reference
-  (src/hjb_clean.py), so the study measures genuine basis error rather than
-  inheriting a broken reference.
-
-  Rationale for a wavelet basis: the value function V(.,Q,t) is continuous but
-  has kinks in S (the min over the release switches between deficit, interior
-  and spill regimes), so V is in H^1 but not H^2. For such functions a Haar
-  multiresolution basis attains
-
-      || V - P_M V ||_L2 = O(M^-1)      for V in H^1
-
-  and a smoother basis cannot do better because of the kinks. This is precisely
-  why the wavelet basis is the right choice for this problem.
-
-  Measured convergence (run: python3 src/wavelet_galerkin.py):
-
-      J    M     L2 error
-      1    2     6.786e+02
-      2    4     4.688e+02
-      3    8     2.618e+02
-      4   16     1.314e+02
-      5   32     5.906e+01
-
-      Empirical rate: O(M^-0.89)     (theory O(M^-1))
-
-  Unit tests verify: Haar basis orthonormality (max off-diagonal 2e-16),
-  projection error decreasing with M, WG error decreasing with M, and the rate
-  in the theoretical band.
-
-## Validation status: all components
-
-| Component                | File                    | Status    |
-|--------------------------|-------------------------|-----------|
-| SDDP water values        | src/sddp_clean.py       | validated |
-| Ito SDE calibration      | src/hjb_integrate.py    | validated |
-| EM / Milstein convergence| src/sde_convergence.py  | validated |
-| HJB PDE solver           | src/hjb_clean.py        | validated |
-| Wavelet-Galerkin         | src/wavelet_galerkin.py | validated |
-
-Run every test suite:
-
-    python3 src/sddp_clean.py
-    python3 src/sde_convergence.py
-    python3 src/hjb_clean.py
-    python3 src/wavelet_galerkin.py
+**Wavelet-Galerkin.** Empirical rate O(M^-1.029) against the corrected FD
+reference; theory O(M^-1) for value functions in H1. V has kinks in S where the release
+regime switches, so V is in H1 but not H2 - a smoother basis cannot beat O(M^-1), which
+is exactly why the Haar basis is the right choice.
 
 ## Defects found and corrected
 
-1. **SDDP lower bound** was a single random forward-pass cost, so it oscillated
-   under high inflow variance; and cuts were OLS-fitted then pruned rather than
-   accumulated. Replaced with accumulating supporting hyperplanes and a
-   deterministic first-stage bound (monotone).
-2. **HJB sign error.** The backward step used V - dt*H instead of V + dt*H,
-   flipping the diffusion sign into a backward heat equation -> blow-up to
-   |V| ~ 1e116.
-3. **HJB diffusion on the wrong state.** Applied to storage (V_SS) instead of
-   the inflow; corrected to kappa*(theta-Q)*V_Q + 0.5*sigma^2(Q)*V_QQ.
-4. **Convergence test path coupling.** The RNG was re-seeded per discretization,
-   so each dt used a different Brownian path; this capped both slopes near 0.3
-   and hid Milstein's first order. The Milstein implementation was correct.
+Six real defects were found and fixed. Each is documented because each would have
+invalidated results under review.
 
-## Remaining work (honest)
+1. **SDDP bound and cuts.** The lower bound was the cost of a single randomly sampled
+   forward pass, so it oscillated wildly under high inflow variance; cuts were fitted by
+   OLS through sampled points and then pruned, so the value function could get worse
+   between iterations. Replaced with accumulating supporting hyperplanes (never pruned)
+   and a deterministic first-stage lower bound. `src/sddp_clean.py`.
 
-- The model is single-reservoir. The OMVS cascade (Manantali -> Gouina ->
-  Felou, with the downstream run-of-river plants fed by upstream releases) is
-  not yet represented.
-- Cross-validation against the real Plan4RES SDDP solver is pending resolution
-  of its toyDataset terminal-cut issue (see plan4res_fixes/FIXES_APPLIED.md).
-- The cyclic terminal water value (nu) is an approximation; a fixed-point
-  treatment would close the residual LB-UB gap in the SDDP.
+2. **HJB sign error.** The backward HJB is -dV/dt = H, so the backward step is
+   V(t) = V(t+dt) + dt*H. The code used V - dt*H, flipping the diffusion sign into a
+   backward heat equation (anti-diffusion) and diverging to |V| ~ 1e116.
+
+3. **HJB diffusion on the wrong state.** Randomness lives in the inflow Q, not in storage
+   S (S evolves deterministically given u and Q). The code applied 0.5*sigma^2*V_SS;
+   corrected to kappa*(theta-Q)*V_Q + 0.5*sigma^2(Q)*V_QQ with S carrying only the drift
+   (Q-u-spill)*V_S. `src/hjb_clean.py`.
+
+4. **Convergence test path coupling.** The RNG was re-seeded before each discretization,
+   so every dt level was driven by a *different* Brownian path. Strong convergence is
+   pathwise, so the measured error was dominated by path differences: both slopes capped
+   near 0.3 and Milstein's first order was hidden. Fine increments are now generated once
+   and summed into coarser levels. The Milstein implementation was correct all along.
+   `src/sde_convergence.py`.
+
+5. **Reservoir parameters never reached the solver.** `compare_plan4res.py` called
+   `compare_MS_MD` without S_max, R_max or D, so every run used the solver defaults
+   (S_max=1500, R_max=180, D=95) regardless of the reservoir being studied. On RoGonDor
+   this meant demand was 14x the inflow and every policy was forced to release everything,
+   making all models identical. Fixed; the demand is now sized to the reservoir's
+   deliverable energy on both branches (the zone total in ZV_ZoneValues.csv is met by the
+   whole fleet, not by the reservoir, and must not be used as D).
+
+6. **Bound scale mismatch.** The lower bound was discounted and included the terminal
+   water value (both inherited through the cut recursion); the upper bound was an
+   undiscounted sum of stage costs with no terminal term. The gap therefore could never
+   close (a ~10.5% floor at gamma=0.98 over 12 stages) and could even go negative.
+   Both bounds are now on the same scale. A hardcoded sigma=15 in the i.i.d. ablation
+   was also scaled to the data.
+
+## Remaining work
+
+- **Cascade.** The model is single-reservoir. The OMVS cascade
+  (Manantali -> Gouina -> Felou, downstream run-of-river plants fed by upstream releases)
+  is not represented. The station parameter file assigns Manantali's head and capacity to
+  the BafingMakana *station* with zero active storage, which deletes the reservoir from the
+  model; this must be corrected before cascade results are reported.
+- **Plan4RES cross-validation.** Pending resolution of the upstream
+  `oneStepBackward: no linearization is available` issue on their stock toyDataset
+  (see `plan4res_fixes/FIXES_APPLIED.md`).
+- **Cyclic terminal value.** nu is an approximation; a fixed-point treatment would close
+  the residual ~4% LB-UB gap.

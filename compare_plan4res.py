@@ -78,6 +78,20 @@ def main():
             bellman = None
         source = f"Plan4RES toyDataset ({args.reservoir})"
 
+    # Size the reservoir demand to what it can actually deliver.
+    # The zone total in ZV_ZoneValues.csv is met by the whole fleet (solar, gas,
+    # ...), not by this reservoir alone, so it must not be used as D here.
+    # Without this the Plan4RES branch fell back to the solver default D=95
+    # while RoGonDor receives only 6.55 GWh/month -> demand 14x inflow -> every
+    # policy forced to release everything -> all models identical, VSS void.
+    # Same convention on both branches so the comparison is like-for-like.
+    if 'demand_override' not in params:
+        params['demand_override'] = 0.9 * float(inflows.mean())
+    print(f"[SETUP] mean inflow={float(inflows.mean()):.2f} GWh/mo  ->  "
+          f"D={params['demand_override']:.2f} GWh/mo  "
+          f"(S_max={params.get('S_max', float('nan')):.1f}, "
+          f"R_max={params.get('R_max', float('nan')):.1f})")
+
     x = inflows.values.astype(float)
 
     # ── 2. WP2 wavelet ────────────────────────────────────────────────────────
@@ -94,10 +108,17 @@ def main():
     val = validate_scenarios(gen, x, n_stages=12)
 
     # ── 4. WP4 SDDP: M-S vs M-D on identical inputs ───────────────────────────
-    results = compare_MS_MD(eta, weights, seasonal, n_stages=12,
-                            n_iter=args.n_iter, n_mc=args.n_mc,
-                            S0=params['S_init'] if 'S_init' in params else 600.0,
-                            C_def=params.get('C_def', 300.0))
+    # Pass the reservoir parameters through to the solver. Without this the
+    # SDDP silently runs on its defaults (S_max=1500, R_max=180, D=95), which
+    # have nothing to do with the reservoir being studied.
+    _sddp_kw = dict(n_iter=args.n_iter, n_mc=args.n_mc,
+                    S0=params.get('S_init', 600.0),
+                    C_def=params.get('C_def', 300.0))
+    if 'S_max' in params:           _sddp_kw['S_max'] = params['S_max']
+    if 'R_max' in params:           _sddp_kw['R_max'] = params['R_max']
+    if 'demand_override' in params: _sddp_kw['D']     = params['demand_override']
+    print('[SETUP] solver kwargs: ' + ', '.join(f'{k}={v}' for k, v in _sddp_kw.items()))
+    results = compare_MS_MD(eta, weights, seasonal, n_stages=12, **_sddp_kw)
 
     def cost(m): return float(results[m][1]['annual_cost'].mean())
     def defc(m): return float(results[m][1]['deficit_gwh'].mean())
