@@ -151,5 +151,75 @@ Status as of this commit:
   (moderate kappa, Feller-safe) is the proper demonstration of the theoretical
   rates.
 
-- **Wavelet-Galerkin projection (UNDER VALIDATION).** Pending re-derivation
-  against the corrected HJB reference solution.
+- **Wavelet-Galerkin projection (VALIDATED).** src/wavelet_galerkin.py solves
+  the HJB in a reduced orthonormal Haar basis in the storage dimension and
+  measures the L2 error against the CORRECTED finite-difference reference
+  (src/hjb_clean.py), so the study measures genuine basis error rather than
+  inheriting a broken reference.
+
+  Rationale for a wavelet basis: the value function V(.,Q,t) is continuous but
+  has kinks in S (the min over the release switches between deficit, interior
+  and spill regimes), so V is in H^1 but not H^2. For such functions a Haar
+  multiresolution basis attains
+
+      || V - P_M V ||_L2 = O(M^-1)      for V in H^1
+
+  and a smoother basis cannot do better because of the kinks. This is precisely
+  why the wavelet basis is the right choice for this problem.
+
+  Measured convergence (run: python3 src/wavelet_galerkin.py):
+
+      J    M     L2 error
+      1    2     6.786e+02
+      2    4     4.688e+02
+      3    8     2.618e+02
+      4   16     1.314e+02
+      5   32     5.906e+01
+
+      Empirical rate: O(M^-0.89)     (theory O(M^-1))
+
+  Unit tests verify: Haar basis orthonormality (max off-diagonal 2e-16),
+  projection error decreasing with M, WG error decreasing with M, and the rate
+  in the theoretical band.
+
+## Validation status: all components
+
+| Component                | File                    | Status    |
+|--------------------------|-------------------------|-----------|
+| SDDP water values        | src/sddp_clean.py       | validated |
+| Ito SDE calibration      | src/hjb_integrate.py    | validated |
+| EM / Milstein convergence| src/sde_convergence.py  | validated |
+| HJB PDE solver           | src/hjb_clean.py        | validated |
+| Wavelet-Galerkin         | src/wavelet_galerkin.py | validated |
+
+Run every test suite:
+
+    python3 src/sddp_clean.py
+    python3 src/sde_convergence.py
+    python3 src/hjb_clean.py
+    python3 src/wavelet_galerkin.py
+
+## Defects found and corrected
+
+1. **SDDP lower bound** was a single random forward-pass cost, so it oscillated
+   under high inflow variance; and cuts were OLS-fitted then pruned rather than
+   accumulated. Replaced with accumulating supporting hyperplanes and a
+   deterministic first-stage bound (monotone).
+2. **HJB sign error.** The backward step used V - dt*H instead of V + dt*H,
+   flipping the diffusion sign into a backward heat equation -> blow-up to
+   |V| ~ 1e116.
+3. **HJB diffusion on the wrong state.** Applied to storage (V_SS) instead of
+   the inflow; corrected to kappa*(theta-Q)*V_Q + 0.5*sigma^2(Q)*V_QQ.
+4. **Convergence test path coupling.** The RNG was re-seeded per discretization,
+   so each dt used a different Brownian path; this capped both slopes near 0.3
+   and hid Milstein's first order. The Milstein implementation was correct.
+
+## Remaining work (honest)
+
+- The model is single-reservoir. The OMVS cascade (Manantali -> Gouina ->
+  Felou, with the downstream run-of-river plants fed by upstream releases) is
+  not yet represented.
+- Cross-validation against the real Plan4RES SDDP solver is pending resolution
+  of its toyDataset terminal-cut issue (see plan4res_fixes/FIXES_APPLIED.md).
+- The cyclic terminal water value (nu) is an approximation; a fixed-point
+  treatment would close the residual LB-UB gap in the SDDP.

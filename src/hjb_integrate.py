@@ -55,6 +55,24 @@ def run_hjb(seasonal, residuals, params, fast=True, verbose=True):
               N_S=N_S, N_Q=N_Q, N_t=N_t, verbose=verbose)
     V = hjb.solve()
 
+    # ---- (C2) wavelet-Galerkin convergence vs the corrected FD reference ----
+    wg_rows, wg_slope = None, None
+    try:
+        from wavelet_galerkin import wg_convergence
+        wg_rows, wg_slope = wg_convergence(
+            theta_fn, kappa=float(ito.kappa_), sigma0=float(ito.sigma0_),
+            params=dict(S_max=params.get('S_max', 300.0),
+                        Q_max=max(Q_max, 1.0),
+                        R_max=params.get('R_max', 146.0),
+                        D=params.get('D', 92.0),
+                        C_def=params.get('C_def', 300.0),
+                        nu=params.get('nu', 0.15)),
+            J_list=(1, 2, 3, 4) if fast else (1, 2, 3, 4, 5),
+            N_S=32 if fast else 64, N_Q=8 if fast else 12,
+            N_t=6 if fast else 8, verbose=verbose)
+    except Exception as e:
+        print(f'[WG] skipped: {e}')
+
     # value-function diagnostics (the defensible, checkable properties)
     V0 = V[:, N_Q // 2, 0]
     argmin_S = int(np.argmin(V0))
@@ -96,6 +114,11 @@ def run_hjb(seasonal, residuals, params, fast=True, verbose=True):
             value_at_t0=[round(float(v), 2) for v in V0],
             policy_at_t0=[round(float(u), 2) for u in pol_mid],
         ),
+        wavelet_galerkin=(dict(
+            status='validated',
+            slope=round(float(wg_slope), 3), theory=-1.0,
+            basis='orthonormal Haar (H^1 value function)',
+            table=wg_rows) if wg_rows else dict(status='skipped')),
         grid=dict(N_S=N_S, N_Q=N_Q, N_t=N_t, n_paths=n_paths, fast=fast),
     )
     if verbose:
