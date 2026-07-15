@@ -94,9 +94,32 @@ Status as of this commit:
 - **Euler-Maruyama convergence (VALIDATED).** Strong-convergence slope 0.31 on
   real data (theory 0.5; synthetic test gives 0.44).
 
-- **HJB PDE solver (UNDER VALIDATION).** The explicit finite-difference HJB
-  solver exhibits a numerical instability (value function diverges under the
-  current explicit scheme). The Milstein scheme slope (0.32, theory 1.0) and the
-  wavelet-Galerkin convergence depend on a stable HJB solver and are therefore
-  held back pending a stable (implicit/CFL-correct) reimplementation. These
-  numbers are NOT reported in results to avoid shipping unvalidated values.
+- **HJB PDE solver (VALIDATED).** The original explicit solver diverged due to
+  two real defects, now corrected in src/hjb_clean.py:
+
+  1. *Sign error.* The backward HJB is -dV/dt = H, so a backward step is
+     V(t) = V(t+dt) + dt*H. The original used V - dt*H, which flips the
+     diffusion sign and turns the PDE into a backward heat equation
+     (anti-diffusion) -> exponential blow-up (observed: |V| ~ 1e116).
+  2. *Diffusion on the wrong state.* Randomness lives in the INFLOW Q, not in
+     storage S (S evolves deterministically given u and Q). The original applied
+     0.5*sigma^2*V_SS. The correct generator is
+     kappa*(theta(t)-Q)*V_Q + 0.5*sigma^2(Q)*V_QQ, with S carrying only the
+     drift (Q-u-spill)*V_S.
+
+  The corrected solver uses explicit upwinding with automatic CFL sub-stepping.
+  Unit tests (run: python3 src/hjb_clean.py) verify:
+    - solution finite (no blow-up)
+    - value function U-shaped in storage: high at empty (deficit risk), interior
+      minimum, rising near full (spill penalty) -- physically correct
+    - more inflow lowers cost when the reservoir is empty
+    - optimal release increases with storage
+
+  On real OMVS data the solver is stable, the value function is U-shaped with its
+  minimum at S = 127 GWh, and the calibrated CIR satisfies Feller (13.85), so
+  Q_t > 0 is guaranteed.
+
+- **Milstein convergence (UNDER VALIDATION).** Slope 0.32 on real data
+  (theory 1.0); the Milstein correction term needs review. EM (0.31 real /
+  0.44 synthetic, theory 0.5) is reported. Wavelet-Galerkin projection is
+  pending re-derivation against the corrected HJB reference.
