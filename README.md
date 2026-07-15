@@ -12,7 +12,29 @@ UCAD Dakar · University of Nairobi · CTSS
 
 ---
 
-## Quick start
+## Install and run - one paste
+
+**macOS / Linux** (VS Code terminal):
+```bash
+git clone https://github.com/belvinos91/mosshoos-plan4res.git && cd mosshoos-plan4res && bash install.sh
+```
+
+**Windows** (VS Code PowerShell terminal):
+```powershell
+git clone https://github.com/belvinos91/mosshoos-plan4res.git; cd mosshoos-plan4res; .\install.ps1
+```
+
+That is everything: it finds a usable Python, builds an isolated `.venv` (nothing on your
+system is touched), installs the dependencies, runs all four unit-test suites, runs the
+pipeline on the real OMVS data, builds `dashboard.html` and opens it.
+
+Nothing to configure. No solver licence. No Plan4RES installation required.
+
+> The repository is private, so `git clone` will ask you to sign in. Ask the author to add
+> you as a collaborator first, or use the `dashboard.html` file directly - it is standalone
+> and needs nothing installed at all.
+
+## Quick start (manual)
 
 ```bash
 git clone https://github.com/belvinos91/mosshoos-plan4res.git
