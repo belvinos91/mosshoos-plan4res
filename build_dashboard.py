@@ -92,7 +92,7 @@ footer{text-align:center;color:#9aa4ae;font-size:12px;padding:24px}
 </div>
 <p style="font-size:13px;margin-top:16px">
  <span class="badge ms">M-S</span> MOSSHOOS (stochastic) ·
- <span class="badge md">M-D</span> Plan4RES (deterministic) ·
+ <span class="badge md">M-D</span> deterministic-equivalent (deterministic) ·
  <span class="badge ref">M-S0</span> stochastic without wavelet ·
  <span class="badge ref">M-D0</span> greedy baseline</p>
 </section>
@@ -103,7 +103,7 @@ footer{text-align:center;color:#9aa4ae;font-size:12px;padding:24px}
 <div class="note">For the Senegal/WAPP application these map to the OMVS plants: <b>Manantali/BafingMakana</b> (200 MW, H=65 m), <b>Félou</b> (59.5 MW, H=14.5 m), <b>Gouina</b> (140 MW, H=17 m).</div>
 </section>
 
-<section id="p4r"><h2><span class="badge md">M-D</span> Plan4RES Method</h2>
+<section id="p4r"><h2><span class="badge md">M-D</span> deterministic-equivalent Method</h2>
 <p class="lead">Deterministic seasonal storage value via Benders cuts on the mean-inflow forecast.</p>
 <div class="eqbox">\\[ V_t(S)=\\max_{\\ell\\in\\mathcal{L}_t}\\{\\,b_\\ell+\\mathbf{a}_\\ell^\\top\\mathbf{S}\\,\\} \\]</div>
 <div id="p4rref"></div>
@@ -190,7 +190,7 @@ document.getElementById('wp2txt').textContent=`J*=${R.wp2.J_optimal}, A_J energy
 document.getElementById('fourtxt').textContent=`K=5 harmonics, R²=${R.wp2.fourier_R2}.`;
 document.getElementById('wp3txt').textContent=`${R.wp3.n_scenarios} scenarios (b=4 blocks), KS D=${R.wp3.ks_stat}, ACF max err=${R.wp3.acf_max_err}, energy-score improvement ${R.wp3.es_improvement}% vs i.i.d.`;
 // results table
-const labels={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D Plan4RES',MD0:'M-D0 greedy'};
+const labels={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D det.-equiv.',MD0:'M-D0 greedy'};
 const tb=document.querySelector('#restable tbody');
 ['MS','MS0','MD','MD0'].forEach(m=>{const d=R.wp4.models[m];
  tb.innerHTML+=`<tr><td>${labels[m]}</td><td>${f(d.mean_cost,0)}</td><td>${f(d.p90_cost,0)}</td><td>${f(d.deficit)}</td></tr>`;});

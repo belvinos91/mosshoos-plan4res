@@ -45,9 +45,14 @@ python3 dashboard_server.py --port 8050       # open http://localhost:8050
 ```
 
 **Plan4RES is optional.** MOSSHOOS needs no external solver — the SDDP and HJB are
-self-contained. Their deterministic method (M-D) is reimplemented in `src/sddp_clean.py`,
-so the comparison runs whether or not Plan4RES is installed, and with or without a
-commercial solver licence.
+self-contained, so everything here runs whether or not Plan4RES is installed and with or
+without a commercial solver licence.
+
+**A direct comparison against Plan4RES output is not yet possible.** Their seasonal
+storage module (SSV) does not currently run on open-source-solver builds — see
+[`plan4res_fixes/PLAN4RES_SDDP_BUG.md`](plan4res_fixes/PLAN4RES_SDDP_BUG.md). Until that
+is resolved, the benchmarks here are internal (M-S vs M-S0 vs M-D vs M-D0) and **no claim
+of superiority over Plan4RES is made.**
 
 ---
 
@@ -74,10 +79,27 @@ JSON by `write_results.py`, so it cannot drift from the numbers.
 |-------|--------|
 | **M-S** | MOSSHOOS — stochastic: wavelet + block-bootstrap + SDDP |
 | **M-S0** | ablation — stochastic SDDP without the wavelet step |
-| **M-D** | Plan4RES — deterministic mean-inflow Benders cuts |
+| **M-D** | benchmark — our SDDP on a single mean-inflow scenario (deterministic-equivalent) |
 | **M-D0** | baseline — greedy, no water value |
 
-VSS = C(M-D) − C(M-S). We report the comparison against **both** M-D and the greedy
+VSS = C(M-D) − C(M-S)
+
+> **Important.** M-D is **not** Plan4RES output. Plan4RES's seasonal storage module (SSV)
+> is itself SDDP - the binary is `sddp_solver` and its `bellmanvalues.csv` holds Benders
+> cuts over scenarios. It is a *stochastic* method, not a deterministic one. M-D here is
+> **our own SDDP fitted on a single mean-inflow scenario**: a deterministic-equivalent
+> benchmark that isolates the value of representing uncertainty at all.
+>
+> A true MOSSHOOS-vs-Plan4RES comparison requires running their solver, which is currently
+> blocked by a bug in their SDDP on open-source-solver builds
+> (see [`plan4res_fixes/PLAN4RES_SDDP_BUG.md`](plan4res_fixes/PLAN4RES_SDDP_BUG.md)).
+> Until that is resolved, **no claim of superiority over Plan4RES is made here.**
+>
+> The comparison that does test the MOSSHOOS contribution is **M-S vs M-S0** - our
+> wavelet + block-bootstrap scenarios against plain scenarios, same solver. On the current
+> runs that difference is ~0%, which is an open question we are investigating, not a result
+> we are claiming.
+. We report the comparison against **both** M-D and the greedy
 baseline, because they answer different questions: M-D0 measures the value of water-value
 operation at all; M-D measures the additional value of modelling uncertainty.
 
@@ -221,7 +243,7 @@ Full trace, including three further defects we fixed (MPI initialization, a miss
 
 This is **why M-D is reimplemented here** rather than invoked: it is not that we did not
 run their solver, it is that their solver does not currently run without Gurobi. Our M-D
-follows their documented method — deterministic mean-inflow Benders cuts — on their own
+follows their documented method — our SDDP on a single mean-inflow scenario — on their own
 input files.
 
 ---

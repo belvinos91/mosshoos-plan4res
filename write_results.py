@@ -48,11 +48,11 @@ python3 dashboard_server.py --port 8050      # live dashboard
 |-------|----------:|---------:|--------------:|
 | M-S  MOSSHOOS stochastic | {M['MS']['mean_cost']:,.0f} | {M['MS']['p90_cost']:,.0f} | {M['MS']['deficit']:.1f} |
 | M-S0 stochastic, no wavelet | {M['MS0']['mean_cost']:,.0f} | {M['MS0']['p90_cost']:,.0f} | {M['MS0']['deficit']:.1f} |
-| M-D  Plan4RES deterministic | {M['MD']['mean_cost']:,.0f} | {M['MD']['p90_cost']:,.0f} | {M['MD']['deficit']:.1f} |
+| M-D  det.-equiv. deterministic | {M['MD']['mean_cost']:,.0f} | {M['MD']['p90_cost']:,.0f} | {M['MD']['deficit']:.1f} |
 | M-D0 greedy, no water value | {M['MD0']['mean_cost']:,.0f} | {M['MD0']['p90_cost']:,.0f} | {M['MD0']['deficit']:.1f} |
 
 - **M-S vs greedy (M-D0): {vss_greedy:.1f}%** - the value of water-value-based operation
-- **M-S vs deterministic (M-D): {R['wp4']['VSS_pct']:.1f}%** - the additional value of modelling uncertainty
+- **M-S vs deterministic-equivalent (M-D): {R['wp4']['VSS_pct']:.1f}%** - the additional value of modelling uncertainty
 
 ## Storage-sensitivity (the defensible contribution)
 

@@ -176,7 +176,7 @@ def main():
 
     print("\n"+"="*64)
     print(f"  SOURCE: {source}")
-    print(f"  VSS (M-D vs M-S) = {VSS:.1f}%   P90 saving = {P90sav:.1f}%   "
+    print(f"  M-S vs det.-equiv. benchmark = {VSS:.1f}%   P90 saving = {P90sav:.1f}%   "
           f"deficit saving = {defsav:.1f}%")
     print(f"  Results -> {args.output}/comparison_results.json")
     print("="*64)

@@ -146,7 +146,7 @@ footer{text-align:center;color:var(--text3);font-size:11px;padding:22px 0}
       <code>src/hjb_clean.py</code>, <code>src/wavelet_galerkin.py</code>.</div>
     <div class="alert ai"><b>Model legend.</b>
       <span class="badge bg">M-S</span> MOSSHOOS stochastic (wavelet + bootstrap + SDDP) &nbsp;
-      <span class="badge bb">M-D</span> Plan4RES deterministic (mean-inflow Benders cuts) &nbsp;
+      <span class="badge bb">M-D</span> deterministic-equivalent deterministic (mean-inflow Benders cuts) &nbsp;
       <span class="badge bn">M-S0</span> stochastic without wavelet (ablation) &nbsp;
       <span class="badge bn">M-D0</span> greedy, no water value (baseline)</div>
   </div>
@@ -254,7 +254,7 @@ footer{text-align:center;color:var(--text3);font-size:11px;padding:22px 0}
       storage-to-inflow regime, not by a single headline number.</p>
     <div class="legs">
       <span class="leg"><span class="sw" style="background:#2a6fb0"></span>M-S vs greedy (M-D0)</span>
-      <span class="leg"><span class="sw" style="background:#A32B2B"></span>M-S vs deterministic (M-D)</span>
+      <span class="leg"><span class="sw" style="background:#A32B2B"></span>M-S vs deterministic-equivalent (M-D)</span>
     </div>
     <div class="ch"><canvas id="sweepChart"></canvas></div>
     <div id="sweepNote"></div>
@@ -445,7 +445,7 @@ function render(){
     <div class="kpi b"><div class="kl">Scenario ES gain</div><div class="kv">${fmt(R.wp3.es_improvement,1)}%</div><div class="ks">vs i.i.d.</div></div>
     <div class="kpi ${R.wp2.fourier_R2<0.5?'w':'g'}"><div class="kl">Fourier R2</div><div class="kv">${fmt(R.wp2.fourier_R2,2)}</div><div class="ks">seasonal predictability</div></div>`;
 
-  const names={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D Plan4RES',MD0:'M-D0 greedy'};
+  const names={MS:'M-S MOSSHOOS',MS0:'M-S0 no-wavelet',MD:'M-D det.-equiv.',MD0:'M-D0 greedy'};
   const ks=['MS','MS0','MD','MD0'].filter(k=>M[k]);
   mk('ovCost',{type:'bar',data:{labels:ks.map(k=>names[k]),datasets:[
     {label:'Mean',data:ks.map(k=>M[k].mean_cost),backgroundColor:'#1D7A5A'},
@@ -577,7 +577,7 @@ function renderSweep(){
   mk('sweepChart',{type:'line',data:{labels:s.map(r=>r.frac+'x'),datasets:[
     {label:'vs greedy (M-D0)',data:s.map(r=>r.vss_vs_greedy),borderColor:'#2a6fb0',backgroundColor:'transparent',
      borderWidth:2.4,tension:.3,pointRadius:3.5,pointBackgroundColor:'#2a6fb0'},
-    {label:'vs deterministic (M-D)',data:s.map(r=>r.vss),borderColor:'#A32B2B',backgroundColor:'transparent',
+    {label:'vs deterministic-equivalent (M-D)',data:s.map(r=>r.vss),borderColor:'#A32B2B',backgroundColor:'transparent',
      borderWidth:2.2,borderDash:[6,4],tension:.3,pointRadius:3.5,pointStyle:'rect',pointBackgroundColor:'#A32B2B'}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{y:{title:{display:true,text:'VSS (% cost reduction)'}},

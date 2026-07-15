@@ -31,11 +31,11 @@ python3 dashboard_server.py --port 8050      # live dashboard
 |-------|----------:|---------:|--------------:|
 | M-S  MOSSHOOS stochastic | 338,723 | 416,282 | 178.4 |
 | M-S0 stochastic, no wavelet | 338,764 | 416,282 | 178.4 |
-| M-D  Plan4RES deterministic | 338,749 | 416,282 | 178.4 |
+| M-D  det.-equiv. deterministic | 338,749 | 416,282 | 178.4 |
 | M-D0 greedy, no water value | 365,237 | 443,283 | 178.8 |
 
 - **M-S vs greedy (M-D0): 7.3%** - the value of water-value-based operation
-- **M-S vs deterministic (M-D): 0.0%** - the additional value of modelling uncertainty
+- **M-S vs deterministic-equivalent (M-D): 0.0%** - the additional value of modelling uncertainty
 
 ## Storage-sensitivity (the defensible contribution)
 
