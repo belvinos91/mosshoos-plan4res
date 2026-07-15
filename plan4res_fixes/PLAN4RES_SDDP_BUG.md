@@ -1,7 +1,8 @@
 # SDDP fails on HiGHS-only builds: `intRelaxIntVars` does not reach the inner UCBlock
 
 **Component:** SDDPBlock / SDDPSolver, MILPSolver (HiGHS)
-**Severity:** blocks all SDDP use on open-source-solver builds
+**Severity:** blocks the **entire Plan4RES workflow** on open-source-solver builds
+(SSV fails; SIM and CEM then fail because they consume SSV's Bellman values)
 **Reproducible:** yes, on the stock `toyDataset` shipped with Plan4RES
 
 ---
@@ -20,9 +21,24 @@ The root cause is that the unit-commitment subproblem is solved as a **MIP** des
 `intRelaxIntVars 1` being set in `uc_solverconfig.txt`. A MIP has no dual solution, so no
 linearization of the `BendersBFunction` can be produced, and SDDP cannot generate a cut.
 
-This is not dataset-specific. It appears to affect **every user without a commercial
-solver licence**, which we suspect is why it has not surfaced upstream: CPLEX/Gurobi/SCIP
-builds presumably take a path where the relaxation is applied.
+This is not dataset-specific, and it is not limited to SSV. Because `SIM` and `CEM`
+consume the Bellman values that SSV produces, the failure cascades:
+
+```
+p4r FORMAT toyDataset -M simul   ->  successfully ran FORMAT
+p4r SIM    toyDataset            ->  "No Bellman values found in .../results_simul/
+                                      nor .../results_optim/"
+                                     "error while running SIM"
+p4r FORMAT toyDataset -M invest  ->  successfully ran FORMAT
+p4r CEM    toyDataset            ->  "None of BellmanValuesOUT.csv and cuts.txt is
+                                      present in results_optim/"
+                                     "error while running CEM with investment_solver"
+```
+
+So on a HiGHS-only build only `CREATE` and `FORMAT` succeed; **SSV, SIM, CEM and
+SSVandCEM are all unusable**. It appears to affect every user without a commercial solver
+licence, which we suspect is why it has not surfaced upstream: CPLEX/Gurobi/SCIP builds
+presumably take a path where the relaxation is applied.
 
 ---
 
@@ -102,16 +118,44 @@ Every layer reads correctly, yet the integers survive into the solve. We could n
 identify where the flag is lost without instrumenting a rebuild, and we expect the
 maintainers will recognise the initialization-order issue immediately.
 
+## Both solver paths fail identically
+
+`SDDPGreedySolver` configures the inner blocks by calling `configure_inner_block(stage)`
+**explicitly at solve time** (`SDDPGreedySolver.cpp:89,214,326`), whereas `SDDPSolver`
+relies on the `set_Block` path. We tested whether the two differ:
+
+```bash
+sddp_solver -s -S settings/sddp_greedy.txt -c settings/ -p nc4_optim/ nc4_optim/SDDPBlock.nc4
+```
+
+```
+MIP has 756 rows; 541 cols; 1801 nonzeros; 204 integer variables (187 binary)
+The subproblem at stage 0 is unbounded.
+Lower bound: -inf
+Upper bound: inf
+```
+
+**The greedy solver sees the same 204 integer variables.** The relaxation therefore fails
+through *both* configuration paths, which rules out a path-specific plumbing bug and
+points at something common to both - `BlockSolverConfig::apply()` itself, or the point at
+which `MILPSolver` / `HiGHSMILPSolver` loads variables relative to when `relax_int_vars`
+is set.
+
+Note also the greedy run reports **"The subproblem at stage 0 is unbounded"**: with an
+all-zero last-stage cut and no relaxation, the stage problem has no finite bound.
+
 ## Suggested diagnostics
 
-1. Does `SDDPGreedySolver` work where `SDDPSolver` fails? It calls
-   `configure_inner_block(stage)` explicitly at solve time
-   (`SDDPGreedySolver.cpp:89,214,326`) rather than relying on the `set_Block` path.
-   If greedy relaxes correctly and SDDP does not, the fault is in the `set_Block`
-   configuration path.
-2. Log `relax_int_vars` in `HiGHSMILPSolver` immediately before the variables are loaded.
-3. Confirm whether the inner `Solver` instance configured by `apply()` is the same
-   instance later returned by `BendersBFunction::get_solver()`.
+1. Log `relax_int_vars` inside `HiGHSMILPSolver` immediately before the variables are
+   loaded (`HiGHSMILPSolver.cpp:1032,1709`). We expect it to be `false` there despite
+   `intRelaxIntVars 1`.
+2. Confirm whether the inner `Solver` instance configured by
+   `f_inner_block_solver_config->apply( inner_block )` is the same instance later
+   returned by `BendersBFunction::get_solver()`.
+3. Check whether `set_par( intRelaxIntVars , 1 )` arrives **after** the block's variables
+   have already been loaded into HiGHS. `MILPSolver::set_par` only sets a flag
+   (`MILPSolver.cpp:1838-1839`); nothing re-reads it, so a model already built with
+   integers would keep them.
 
 ## Secondary issues noticed
 
