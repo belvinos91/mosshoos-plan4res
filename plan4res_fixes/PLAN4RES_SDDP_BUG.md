@@ -1,11 +1,103 @@
-# SDDP fails on HiGHS-only builds: `intRelaxIntVars` does not reach the inner UCBlock
+# FIXED (patch below): SDDP fails on HiGHS-only builds - `set_par` overload hiding silently overwrites `intRelaxIntVars`
 
 **Component:** SDDPBlock / SDDPSolver, MILPSolver (HiGHS)
 **Severity:** blocks the **entire Plan4RES workflow** on open-source-solver builds
 (SSV fails; SIM and CEM then fail because they consume SSV's Bellman values)
 **Reproducible:** yes, on the stock `toyDataset` shipped with Plan4RES
+**Status:** ROOT CAUSE FOUND, one-line fix verified - see `0001-fix-MILPSolver-overload-hiding.patch`
 
 ---
+
+## Root cause (found, fixed, verified)
+
+A C++ **overload-hiding** bug in `MILPSolver`.
+
+`MILPSolver.h` declares:
+
+```cpp
+534:  void set_par( idx_type par , int value ) override;
+537:  // void set_par( idx_type par , double value ) override;   <-- commented out
+540:  void set_par( idx_type par , std::string && value ) override;
+```
+
+Declaring *any* `set_par` in a derived class **hides every base-class `set_par`
+overload**. The `double` version is commented out and there is **no
+using-declaration**, so `MILPSolver` has no `double` overload at all - neither
+declared nor inherited.
+
+`HiGHSMILPSolver::set_par( par , double )` ends with:
+
+```cpp
+MILPSolver::set_par( par , value );      // value is a double
+```
+
+With no `double` overload to bind to, the compiler **narrows the double to int**
+and dispatches to `set_par( idx_type , int )`.
+
+**The int and double parameter enums are separate index spaces.** So in the stock
+`uc_solverconfig.txt`:
+
+```
+dblAAccSol 5e-04        # double parameter, index 7
+```
+
+`5e-04` truncates to `int 0`, calls `set_par( 7 , 0 )`, and int index 7 is
+**`intRelaxIntVars`** - which is therefore silently set to false.
+
+```
+dblAAccSol 5e-04
+  -> set_par( 7 , 0 )              (double narrowed to int)
+  -> relax_int_vars = false        (int idx 7 == intRelaxIntVars)
+  -> UC solved as a MIP            (204 integer variables, 187 binary)
+  -> a MIP has no dual solution
+  -> HiGHSMILPSolver::has_dual_solution() == false   (kHighsSolutionStatusNone)
+  -> BendersBFunction::has_linearization( true ) == false
+  -> SDDPSolver::SDDPOptimizer::oneStepBackward throws
+```
+
+This is invisible to inspection - every layer of the configuration path is
+correct. It was found by instrumenting `MILPSolver::set_par` and taking a
+backtrace on the offending call:
+
+```
+[DBG] set_par intRelaxIntVars <- 1  (this=0x7bd7380)      <- config applies it
+[DBG] set_par(INT) par=7 value=0 intRelaxIntVars_idx=7    <- dblAAccSol lands here
+[DBG] load_problem: relax_int_vars=0                      <- MIP
+
+backtrace:
+  HiGHSMILPSolver::set_par(unsigned short, double)         <- the double overload
+  ThinComputeInterface::set_ComputeConfig
+  BlockSolverConfig::apply(Block*)
+  SDDPSolver::set_Block
+  Block::register_Solver
+  BlockSolverConfig::apply(Block*)
+  process_block_file
+  main
+```
+
+## The fix
+
+One line in `MILPSolver/include/MILPSolver.h`:
+
+```cpp
+using CDASolver::set_par;          // restore the hidden base-class overloads
+void set_par( idx_type par , int value ) override;
+```
+
+## Verified
+
+Stock toyDataset, HiGHS 1.15.1, **no commercial solver**:
+
+| | before | after |
+|---|---|---|
+| `relax_int_vars` at load | 0 | **1** |
+| HiGHS problem type | `Solving MIP ... 204 integer variables` | **`Solving LP`** (203 LP solves, 0 MIP) |
+| linearization errors | fatal throw | **0** |
+| exit code | Aborted (core dumped) | **0, "Optimal solution found."** |
+| `p4r SSV toyDataset` | fails | **completes, writes `results_simul/cuts.txt`** |
+
+Backward value: 32818090192.099266052
+Forward value:  37582251925.978507996
 
 ## Summary
 

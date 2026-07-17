@@ -1,0 +1,68 @@
+From: Steeven Belvinos Affognon <belvinos@gmail.com>
+Subject: [PATCH] MILPSolver: fix set_par overload hiding that breaks SDDP on HiGHS
+
+Declaring set_par( idx_type , int ) in MILPSolver hides ALL base-class set_par
+overloads (C++ name hiding). The double overload is commented out and there was
+no using-declaration, so MILPSolver had no double overload at all - neither
+declared nor inherited.
+
+Consequently HiGHSMILPSolver::set_par( par , double ), whose last statement is
+
+    MILPSolver::set_par( par , value );      // value is a double
+
+had no double overload to bind to. The compiler narrowed the double to int and
+dispatched to set_par( idx_type , int ).
+
+The int and double parameter enums are SEPARATE index spaces. In the stock
+toyDataset, uc_solverconfig.txt contains
+
+    dblAAccSol 5e-04                         # double parameter, index 7
+
+which truncated to int 0 and silently overwrote
+
+    intRelaxIntVars                          # int parameter, index 7
+
+leaving relax_int_vars = false. The unit-commitment subproblem was therefore
+solved as a MIP (204 integer variables, 187 binary). A MIP has no dual solution,
+so HiGHSMILPSolver::has_dual_solution() returned false via
+kHighsSolutionStatusNone, BendersBFunction::has_linearization( true ) returned
+false, and SDDPSolver::SDDPOptimizer::oneStepBackward threw
+
+    "SDDPOptimizer::oneStepBackward: no linearization is available."
+
+This blocked the entire Plan4RES workflow on open-source-solver builds: SSV
+failed, and SIM and CEM then failed because they consume SSV's Bellman values.
+
+The fix restores the base-class overloads with a using-declaration.
+
+Verified on the stock toyDataset, HiGHS 1.15.1, no commercial solver:
+
+  before:  Solving MIP ... 204 integer variables (187 binary)
+           terminate called: no linearization is available.  Aborted.
+
+  after:   relax_int_vars=1
+           Solving LP  (203 LP solves, 0 MIP)
+           Backward value: 32818090192.099266052
+           Forward value:  37582251925.978507996
+           Optimal solution found.            exit code 0
+
+  p4r SSV toyDataset now completes and writes results_simul/cuts.txt
+  (real Bellman cuts) on a HiGHS-only build.
+---
+ MILPSolver/include/MILPSolver.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/MILPSolver/include/MILPSolver.h b/MILPSolver/include/MILPSolver.h
+--- a/MILPSolver/include/MILPSolver.h
++++ b/MILPSolver/include/MILPSolver.h
+@@ -531,6 +531,9 @@
+  /// sets an integer parameter with the given value
++ /* Declaring any set_par() here hides ALL base-class set_par() overloads.
++  * Without this using-declaration a set_par( par , <double> ) call narrows the
++  * double to int and lands on the int overload, whose enum is a separate index
++  * space - silently corrupting an unrelated parameter. */
++ using CDASolver::set_par;
+  void set_par( idx_type par , int value ) override;
+ 
+  // sets a double parameter with the given value
+  // void set_par( idx_type par , double value ) override;
