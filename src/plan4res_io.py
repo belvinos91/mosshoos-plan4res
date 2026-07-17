@@ -122,3 +122,87 @@ if __name__ == '__main__':
     print("\nOK — Plan4RES inputs read successfully into MOSSHOOS format.")
     print(f"Inflow series: {len(s)} months")
     print(f"Params: {p}")
+
+
+# ---------------------------------------------------------------------------
+def load_plan4res_system(dataset, reservoir='RoGonDor'):
+    """
+    The zone exactly as Plan4RES models it, in NATIVE MWh - no rescaling, no
+    clamping. This is what makes the water values comparable: Plan4RES reports
+    the system marginal cost of stored water, which only exists if the model
+    contains the same demand, the same thermal alternative and the same VOLL.
+
+    Returns (all energies in MWh, all costs in $/MWh)
+        S_max, S_init, R_max   reservoir, per SSV stage
+        D                      zone demand per SSV stage
+        C_def                  VOLL
+        C_thermal, T_max       CCGT variable cost and capacity per stage
+        monthly                inflow profile, MWh per stage
+    """
+    import os
+    import numpy as np
+    import pandas as pd
+
+    dataset = os.path.expanduser(dataset)
+    csv = os.path.join(dataset, 'csv_simul')
+    ts = os.path.join(dataset, 'TimeSeries')
+
+    ss = pd.read_csv(os.path.join(csv, 'SS_SeasonalStorage.csv'))
+    row = ss[ss.Zone == reservoir].iloc[0]
+
+    zv = pd.read_csv(os.path.join(csv, 'ZV_ZoneValues.csv'))
+
+    def zval(kind):
+        r = zv[(zv.Type == kind) & (zv.Zone == reservoir)]
+        return float(r.value.iloc[0]) if len(r) else None
+
+    # VOLL exactly as given - NOT divided, NOT clamped
+    C_def = zval('CostActivePowerDemand')
+    if C_def is None:
+        C_def = 10000.0
+
+    annual_demand = zval('Total')          # MWh/yr for the whole zone
+    if annual_demand is None:
+        annual_demand = 1546788005.13
+
+    # thermal backstop: the CCGT that sets the marginal cost when water is scarce
+    tu = pd.read_csv(os.path.join(csv, 'TU_ThermalUnits.csv'))
+    gas = tu[(tu.Zone == reservoir) & (tu.Name.str.contains('CCGT', na=False))]
+    if len(gas):
+        C_thermal = float(gas.VariableCost.iloc[0])
+        T_max_mw = float(gas.MaxPower.iloc[0]) * float(gas.NumberUnits.iloc[0])
+    else:
+        C_thermal, T_max_mw = 81.66, 83694.0
+
+    # one SSV stage = one month
+    HOURS = 8760.0 / 12.0
+
+    hydro_file = os.path.join(ts, 'AggregatedTimeSerie_Hydro-Run of River_%s.csv' % reservoir)
+    ror_file = os.path.join(ts, 'TS_HYDRO_ROR_%s.csv' % reservoir)
+    src_file = hydro_file if os.path.exists(hydro_file) else ror_file
+    prof = pd.read_csv(src_file)
+    hourly = prof.select_dtypes('number').iloc[:, 0].values.astype(float)
+    per = max(1, len(hourly) // 12)
+    monthly = np.array([hourly[i*per:(i+1)*per].mean() for i in range(12)])
+    monthly = monthly / (monthly.sum() + 1e-12) * float(row.Inflows)   # MWh/yr
+
+    p = dict(
+        reservoir=reservoir,
+        S_max=float(row.MaxVolume),                  # MWh
+        S_init=float(row.InitialVolume),             # MWh
+        R_max=float(row.MaxPower) * HOURS,           # MWh per stage
+        D=annual_demand / 12.0,                      # MWh per stage
+        C_def=C_def,                                 # $/MWh  (VOLL, as given)
+        C_thermal=C_thermal,                         # $/MWh
+        T_max=T_max_mw * HOURS,                      # MWh per stage
+        annual_inflow=float(row.Inflows),            # MWh/yr
+        monthly=monthly,
+    )
+    print('[P4R-SYS] %s as Plan4RES models it (native MWh):' % reservoir)
+    print('  S_max     = %.3e MWh   R_max = %.3e MWh/stage' % (p['S_max'], p['R_max']))
+    print('  D         = %.3e MWh/stage  (zone demand, served by the whole fleet)' % p['D'])
+    print('  VOLL      = %.1f $/MWh      (as given - not rescaled)' % p['C_def'])
+    print('  CCGT      = %.2f $/MWh, capacity %.3e MWh/stage' % (p['C_thermal'], p['T_max']))
+    print('  inflow    = %.3e MWh/yr  (%.1f%% of demand)'
+          % (p['annual_inflow'], 100 * p['annual_inflow'] / (p['D'] * 12)))
+    return p

@@ -1,0 +1,262 @@
+{
+  "reservoir": "RoGonDor",
+  "cut_column": "a_2",
+  "zone_order": [
+    "DolAmroth",
+    "Harad",
+    "RoGonDor"
+  ],
+  "plan4res": {
+    "source": "/home/steeven/plan4res_work/data/toyDataset/results_simul/cuts.txt",
+    "solver": "Plan4RES SDDP (SMS++) on HiGHS, patched",
+    "note": "real output; possible only after the overload-hiding fix",
+    "stages": [
+      {
+        "timestep": 0,
+        "water_value": 3.00049656500728,
+        "intercept": 32652836605.066433,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 1,
+        "water_value": 5.771152634191737,
+        "intercept": 32543149536.48285,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 2,
+        "water_value": 81.66487751511684,
+        "intercept": 33326524851.10123,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 3,
+        "water_value": 81.66487751511683,
+        "intercept": 32123874477.821728,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 4,
+        "water_value": 5056.6026638645,
+        "intercept": 33473302243.50241,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 5,
+        "water_value": 10000.0,
+        "intercept": 61649131661.60008,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 6,
+        "water_value": 10000.0,
+        "intercept": 90806565018.14313,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 7,
+        "water_value": 97.53715924849865,
+        "intercept": 18852101048.147495,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 8,
+        "water_value": 81.66487751511683,
+        "intercept": 11741589588.489548,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 9,
+        "water_value": 8.000718201576207,
+        "intercept": 8236879397.264606,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 10,
+        "water_value": 6.1143967493137925,
+        "intercept": 7833200106.604192,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 11,
+        "water_value": 3.205352689178732,
+        "intercept": 7561118250.841688,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 12,
+        "water_value": 3.0004601235192125,
+        "intercept": 7358671899.464739,
+        "n_cuts": 4
+      },
+      {
+        "timestep": 13,
+        "water_value": 4.386157331190407,
+        "intercept": 7176620277.131428,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 14,
+        "water_value": 81.66487751511683,
+        "intercept": 8163950230.0318,
+        "n_cuts": 3
+      },
+      {
+        "timestep": 15,
+        "water_value": 81.66487751511683,
+        "intercept": 9278967370.043747,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 16,
+        "water_value": 81.66487751511683,
+        "intercept": 8400935112.5329485,
+        "n_cuts": 2
+      },
+      {
+        "timestep": 17,
+        "water_value": 81.66487751511683,
+        "intercept": 5490500040.266691,
+        "n_cuts": 2
+      }
+    ],
+    "wv_min": 3.0004601235192125,
+    "wv_max": 10000.0,
+    "wv_mean": 1431.0707055562661
+  },
+  "mosshoos": {
+    "solver": "MOSSHOOS SDDP (src/sddp_clean.py)",
+    "converged": true,
+    "params": {
+      "reservoir": "RoGonDor",
+      "S_max": 51.628,
+      "S_init": 34.419,
+      "R_max": 18.844,
+      "annual_inflow": 74.623,
+      "C_def": 300.0,
+      "C_thermal": 81.665,
+      "turbine_eff": 1.0
+    },
+    "stages": [
+      {
+        "stage": 0,
+        "water_value": -1.7701620478692608,
+        "intercept": 68.97846003302465,
+        "n_cuts": 20
+      },
+      {
+        "stage": 1,
+        "water_value": -1.8062878039480792,
+        "intercept": 54.42173352488811,
+        "n_cuts": 20
+      },
+      {
+        "stage": 2,
+        "water_value": -1.8431508203553177,
+        "intercept": 39.5369817404427,
+        "n_cuts": 20
+      },
+      {
+        "stage": 3,
+        "water_value": -1.8807661432198974,
+        "intercept": 23.520705954633485,
+        "n_cuts": 20
+      },
+      {
+        "stage": 4,
+        "water_value": -1.919149125734488,
+        "intercept": 7.164616292975197,
+        "n_cuts": 20
+      },
+      {
+        "stage": 5,
+        "water_value": -1.958315434423048,
+        "intercept": -11.38040728294692,
+        "n_cuts": 20
+      },
+      {
+        "stage": 6,
+        "water_value": -1.9982810555337422,
+        "intercept": -30.65368172498988,
+        "n_cuts": 20
+      },
+      {
+        "stage": 7,
+        "water_value": -2.016267796737487,
+        "intercept": -45.97233855228666,
+        "n_cuts": 20
+      },
+      {
+        "stage": 8,
+        "water_value": -2.057416119119827,
+        "intercept": -60.50698793487712,
+        "n_cuts": 20
+      },
+      {
+        "stage": 9,
+        "water_value": -2.099404203183511,
+        "intercept": -74.38797036536543,
+        "n_cuts": 20
+      },
+      {
+        "stage": 10,
+        "water_value": -2.142249186921971,
+        "intercept": -88.1159046128373,
+        "n_cuts": 20
+      },
+      {
+        "stage": 11,
+        "water_value": -3.843327285992224,
+        "intercept": -190.67383174534243,
+        "n_cuts": 20
+      }
+    ],
+    "wv_min": -3.843327285992224,
+    "wv_max": -1.7701620478692608,
+    "wv_mean": -2.1112314185865713
+  },
+  "alignment": {
+    "plan4res_x": [
+      0.0,
+      0.058823529411764705,
+      0.11764705882352941,
+      0.17647058823529413,
+      0.23529411764705882,
+      0.29411764705882354,
+      0.35294117647058826,
+      0.4117647058823529,
+      0.47058823529411764,
+      0.5294117647058824,
+      0.5882352941176471,
+      0.6470588235294118,
+      0.7058823529411765,
+      0.7647058823529411,
+      0.8235294117647058,
+      0.8823529411764706,
+      0.9411764705882353,
+      1.0
+    ],
+    "mosshoos_interp": [
+      -1.7701620478692608,
+      -1.7956625815719562,
+      -1.821466693056942,
+      -1.847576152457033,
+      -1.8741281450673246,
+      -1.9010865457276218,
+      -1.928364727778855,
+      -1.9560115339119561,
+      -1.984175542200556,
+      -2.004629317135064,
+      -2.0186882862893896,
+      -2.0477341609122175,
+      -2.077175217502737,
+      -2.1069650826667687,
+      -2.137208600599799,
+      -3.142883362845649,
+      -3.843327285992224,
+      -3.843327285992224
+    ],
+    "pearson": 0.2098698741568807,
+    "spearman": 0.15257715115638704
+  }
+}

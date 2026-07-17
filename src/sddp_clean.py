@@ -68,9 +68,15 @@ class SDDP:
     def __init__(self,
                  S_max=1500.0, R_max=180.0, D=95.0,
                  C_def=300.0, C_sp=500.0, C_hyd=2.0,
+                 C_thermal=None, T_max=0.0,
                  nu=0.15, gamma=0.98,
                  n_stages=12, n_iter=200,
                  gap_tol=0.05, n_grid=100, seed=42, verbose=True):
+        # Thermal backstop (merit order). Without it the reservoir is the only
+        # supply and the water value cannot equal a system marginal cost, which
+        # is what Plan4RES reports. C_thermal=None disables it (legacy behaviour).
+        self.C_thermal = None if C_thermal is None else float(C_thermal)
+        self.T_max = float(T_max)
         self.S_max = float(S_max)
         self.R_max = float(R_max)
         self.D = float(D)
@@ -120,9 +126,18 @@ class SDDP:
         r = np.linspace(0.0, r_hi, self.n_grid)
         spill = np.maximum(0.0, S + q - r - self.S_max)
         Sn = np.clip(S + q - r - spill, 0.0, self.S_max)
-        c = (self.C_def * np.maximum(0.0, self.D - r)
-             + self.C_sp * spill
-             + self.C_hyd * r)
+        # merit order: hydro first (it is already released), then thermal,
+        # then unserved energy at VOLL
+        residual = np.maximum(0.0, self.D - r)
+        if self.C_thermal is None:
+            thermal = np.zeros_like(residual)
+        else:
+            thermal = np.minimum(residual, self.T_max)
+        deficit = residual - thermal
+        c = (self.C_hyd * r
+             + (0.0 if self.C_thermal is None else self.C_thermal) * thermal
+             + self.C_def * deficit
+             + self.C_sp * spill)
         if is_last:
             # terminal cost-to-go: linear water value (storing water is valuable
             # -> negative cost).  This is the boundary condition of the recursion.
@@ -240,7 +255,13 @@ class SDDP:
                 mc_run=m + 1, scenario_k=k + 1,
                 annual_cost=sum(d['c'] for d in tr),                       # undiscounted, interpretable
                 annual_cost_disc=sum((self.gamma ** d['t']) * d['c'] for d in tr),  # matches the bounds
-                deficit_gwh=sum(max(0.0, self.D - d['r']) for d in tr),
+                deficit_gwh=sum(max(0.0, self.D - d['r']
+                                     - (0.0 if self.C_thermal is None
+                                        else min(max(0.0, self.D - d['r']), self.T_max)))
+                                 for d in tr),
+                thermal_gwh=sum((0.0 if self.C_thermal is None
+                                 else min(max(0.0, self.D - d['r']), self.T_max))
+                                for d in tr),
             ))
         return pd.DataFrame(rows)
 
