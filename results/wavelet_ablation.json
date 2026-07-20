@@ -1,0 +1,20 @@
+{
+  "frac": 6.0,
+  "S_max": 615.7908962236392,
+  "mean_wavelet": 92806.5816559002,
+  "mean_seasonal_only": 92180.66505510305,
+  "mean_naive": 98736.61020885603,
+  "diff_naive_minus_wavelet": 5930.028552955825,
+  "ci": [
+    4423.741328621957,
+    7388.962869952849
+  ],
+  "diff_seasonal_minus_wavelet": -625.9166007971463,
+  "ci_seasonal": [
+    -1041.0101468832975,
+    -273.8368391830818
+  ],
+  "rel_pct": 6.0059065633427435,
+  "verdict": "WAVELET IMPROVES scenario quality (CI excludes 0)",
+  "n_eval": 300
+}
