@@ -1,0 +1,17 @@
+data_source,data/OMVS_inflows.csv
+wavelet_J,1
+wavelet_AJ_pct,86.51706087975309
+fourier_R2,0.8466906866645769
+n_scenarios,10
+ks_stat,0.9454545454545454
+ks_p,2.75809008153117e-61
+acf_max_err,0.16650489225075032
+es_improvement_pct,49.37427963023243
+C_opex_MS,339230.75408727274
+C_opex_MD,339254.3785890427
+cost_saving_pct,0.006963654196066383
+deficit_MS_gwh,179.3902270365856
+deficit_MD_gwh,179.44441591453935
+deficit_reduction_pct,0.030198141122182505
+sddp_converged,True
+runtime_s,97.17752766609192
