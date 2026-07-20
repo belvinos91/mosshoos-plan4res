@@ -25,7 +25,7 @@ import argparse, os, time
 import numpy as np
 import pandas as pd
 
-OUT = '/mnt/user-data/outputs/'
+OUT = 'results'  
 
 
 def print_header(title):
@@ -166,22 +166,34 @@ if __name__ == '__main__':
     # WP4-A — SDDP
     # ══════════════════════════════════════════════════════
     print_section('WP4-A', 'SSV-SDDP (M-S vs M-D comparison)')
-    from mosshoos_wp4_sddp import compare_MS_MD, plot_results
+    from sddp_clean import compare_MS_MD          # validated, corrected SDDP core
+
+    # Real Manantali regime (matches storage_sweep.py / RESULTS.md) so the
+    # comparison is on the reservoir actually studied, not solver defaults.
+    mean_mo = float(np.mean(x))
+    S_max   = 3.0 * mean_mo                        # ~3 months usable storage
+    R_max   = 200.0 * 730 / 1000.0                 # 200 MW  -> ~146 GWh/month
+    D       = 0.9 * mean_mo                         # demand near mean inflow
 
     results = compare_MS_MD(
         eta, weights, seasonal,
         n_stages = args.n_stages,
         n_iter   = args.n_iter,
         n_mc     = args.n_mc,
-        S0       = 750.0,
+        S0       = 0.5 * S_max,
+        S_max    = S_max, R_max = R_max, D = D,
     )
 
     for name, (solver, df) in results.items():
         df.to_csv(os.path.join(args.output, f'WP4_MC_{name}.csv'),
                   index=False, float_format='%.4f')
 
-    plot_results(results, eta, weights, n_stages=args.n_stages,
-                 save_path=os.path.join(args.output, 'WP4_SDDP_results.png'))
+    try:
+        from mosshoos_wp4_sddp import plot_results
+        plot_results(results, eta, weights, n_stages=args.n_stages,
+                     save_path=os.path.join(args.output, 'WP4_SDDP_results.png'))
+    except Exception as _e:
+        print(f'  [WP4-A plot skipped: {_e}]')
 
     # ══════════════════════════════════════════════════════
     # WP4-B/C — ITÔ SDE + HJB + WAVELET–GALERKIN
@@ -197,22 +209,49 @@ if __name__ == '__main__':
         Q0    = float(ito.theta(np.array([0.0]))[0])
         Q_em  = ito.simulate_em(Q0, args.N_t, args.n_paths)
         Q_mil = ito.simulate_milstein(Q0, args.N_t, args.n_paths)
-        conv  = ito.convergence_test(Q0, n_paths=min(args.n_paths, 200))
+        # Path-coupled strong-convergence test (validated). The old inline test
+        # re-seeded per discretisation, so both slopes capped near 0.3 and hid
+        # Milstein's first order; this drives every level with one Brownian path.
+        from sde_convergence import strong_convergence
+        conv  = strong_convergence(Q0, ito.kappa_, ito.sigma0_, ito.theta,
+                                   kind='sqrt', n_paths=min(args.n_paths, 500),
+                                   verbose=False)
 
         Q_max = float(np.percentile(x, 97))
-        hjb   = HJBWaveletSolver(
-            ito=ito, S_max=1500.0, Q_max=Q_max,
-            R_max=float(np.percentile(x, 95)),
-            N_S=args.N_S, N_Q=args.N_Q, N_t=args.N_t, J_wg=args.J_wg)
-        hjb.solve_fd()
-        hjb.solve_wavelet_galerkin()
-        wg_table, wg_slope = hjb.wg_convergence_table()
-        wg_table.to_csv(
+        # Validated wavelet-Galerkin convergence. The legacy in-class WG solver
+        # returned a constant L2 error (spurious O(M^0.00)); this uses the
+        # corrected FD reference and recovers the H^1-optimal O(M^-1) rate.
+        from wavelet_galerkin import wg_convergence
+        # hjb_clean expects theta_fn(t)->scalar; ito.theta is vectorised.
+        theta_scalar = lambda t: float(np.ravel(ito.theta(np.atleast_1d(float(t))))[0])
+        wg_params = dict(S_max=300.0, Q_max=Q_max,
+                         R_max=float(np.percentile(x, 95)),
+                         D=0.9 * float(np.mean(x)))
+        # N_S>=64 is required for the O(M^-1) regime to be visible; a coarser
+        # grid leaves the WG error dominated by FD-reference error and the fitted
+        # slope is meaningless. This diagnostic is cheap, so fix the resolution.
+        wg_rows, wg_slope = wg_convergence(
+            theta_scalar, ito.kappa_, ito.sigma0_, wg_params,
+            N_S=64, N_Q=12, N_t=8, verbose=False)
+        pd.DataFrame(wg_rows).to_csv(
             os.path.join(args.output, 'WP4_WG_convergence.csv'),
             index=False, float_format='%.6e')
 
-        plot_ito_hjb(ito, hjb, Q_em, Q_mil, conv, wg_table, wg_slope,
-                     save_path=os.path.join(args.output, 'WP4_ito_hjb.png'))
+        # HJB surface figure (guarded: a plotting mismatch never aborts the run).
+        try:
+            conv_arr = {k: (np.asarray(v) if isinstance(v, list) else v)
+                        for k, v in conv.items()}
+            hjb = HJBWaveletSolver(
+                ito=ito, S_max=300.0, Q_max=Q_max,
+                R_max=float(np.percentile(x, 95)),
+                N_S=args.N_S, N_Q=args.N_Q, N_t=args.N_t, J_wg=args.J_wg)
+            hjb.solve_fd()
+            hjb.solve_wavelet_galerkin()
+            wg_table, _ = hjb.wg_convergence_table()
+            plot_ito_hjb(ito, hjb, Q_em, Q_mil, conv_arr, wg_table, wg_slope,
+                         save_path=os.path.join(args.output, 'WP4_ito_hjb.png'))
+        except Exception as _e:
+            print(f'  [WP4-C plot skipped: {_e}]')
     else:
         print('[INFO] HJB solver skipped (--skip_hjb)')
 
