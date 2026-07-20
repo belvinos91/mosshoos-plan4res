@@ -53,7 +53,7 @@ def main():
         # Real Manantali-scale parameters (from hydro_parameters_dam.csv).
         # Storage/turbine sized in GWh/month energy terms to match the inflow.
         mean_mo = float(inflows.mean())               # ~102 GWh/month
-        annual  = float(inflows.resample('Y').sum().mean())
+        annual  = float(inflows.groupby(inflows.index.year).sum().mean())
         # Manantali: p_max=200MW -> ~144 GWh/month turbine cap; active storage
         # ~7.9e9 m3 * 13.77 MWh/day/m3s equiv -> large seasonal buffer.
         params = dict(reservoir='OMVS-Manantali',

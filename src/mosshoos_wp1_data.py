@@ -184,8 +184,8 @@ def validate_inflows(series: pd.Series) -> dict:
         'n_zeros'    : (series <= 0).sum(),
         'n_missing'  : series.isna().sum(),
         # annual total
-        'ann_mean'   : series.resample('Y').sum().mean(),
-        'ann_std'    : series.resample('Y').sum().std(),
+        'ann_mean'   : series.groupby(series.index.year).sum().mean(),
+        'ann_std'    : series.groupby(series.index.year).sum().std(),
     }
 
     print('\n[WP1] Validation report:')
@@ -234,7 +234,7 @@ def plot_inflows(series: pd.Series,
     ax1 = fig.add_subplot(gs[0, :])
     ax1.fill_between(series.index, series.values, alpha=0.3, color=BLUE3)
     ax1.plot(series.index, series.values, color=BLUE, lw=0.8, label='Monthly inflow')
-    ann = series.resample('Y').sum() / 12
+    ann = series.groupby(series.index.year).sum() / 12
     ax1.plot(ann.index, ann.values, color=GOLD, lw=2.5, label='Annual mean', zorder=5)
     ax_fmt(ax1, 'WP1 \u2014 OMVS Monthly Inflows [GWh/month]')
     ax1.set_ylabel('GWh/month')
@@ -242,11 +242,11 @@ def plot_inflows(series: pd.Series,
 
     # 2. Annual totals
     ax2 = fig.add_subplot(gs[1, 0])
-    annual = series.resample('Y').sum()
+    annual = series.groupby(series.index.year).sum()
     colors = [EMBER if v < annual.quantile(0.25)
               else (SAGE if v > annual.quantile(0.75) else BLUE)
               for v in annual.values]
-    ax2.bar(annual.index.year, annual.values, color=colors,
+    ax2.bar(annual.index, annual.values, color=colors,
             edgecolor='white', lw=0.4, width=0.7)
     ax2.axhline(annual.mean(), color=GOLD, lw=2, ls='--',
                 label=f'Mean={annual.mean():.0f} GWh/yr')
